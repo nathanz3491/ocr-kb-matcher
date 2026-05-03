@@ -98,7 +98,7 @@ export async function getCheatSheetByNode(nodeId: string, userId?: string): Prom
  * Generate cheat sheet for a node using AI
  */
 export async function generateCheatSheet(nodeId: string, userId?: string): Promise<CheatSheet> {
-  const graph = await getKnowledgeGraph();
+  const graph = await getKnowledgeGraph(userId);
   const node = graph.nodes.find(n => n.id === nodeId);
 
   if (!node) {
@@ -230,7 +230,7 @@ export async function getStudyNotesByNode(nodeId: string, userId?: string): Prom
  * Generate study notes for a node using AI
  */
 export async function generateStudyNotes(nodeId: string, userId?: string): Promise<StudyNotes> {
-  const graph = await getKnowledgeGraph();
+  const graph = await getKnowledgeGraph(userId);
   const node = graph.nodes.find(n => n.id === nodeId);
 
   if (!node) {

@@ -693,3 +693,33 @@ export async function getKnowledgeGraphByViewport(bounds: ViewportBounds, userId
 export function resetStorageInstance(): void {
   storageCache.clear();
 }
+
+/**
+ * Copies the default knowledge graph to a new user's personal graph file.
+ * Reads knowledge-graph-default.json, deep-copies nodes/edges/statistics (stripping jobContributions),
+ * resets totalJobs to 0, and saves to knowledge-graph-{userId}.json atomically.
+ */
+export async function copyDefaultGraphToUser(userId: string): Promise<void> {
+  const defaultFile = path.join(DATA_DIR, 'knowledge-graph-default.json');
+  const userGraphFile = path.join(DATA_DIR, `knowledge-graph-${userId}.json`);
+
+  const data = await fs.readFile(defaultFile, 'utf-8');
+  const graph: StoredKnowledgeGraph = JSON.parse(data);
+
+  const userGraph: StoredKnowledgeGraph = {
+    ...graph,
+    nodes: { ...graph.nodes },
+    edges: { ...graph.edges },
+    jobContributions: {},
+    statistics: {
+      ...graph.statistics,
+      totalJobs: 0,
+    },
+  };
+
+  const tempPath = `${userGraphFile}.tmp`;
+  await fs.writeFile(tempPath, JSON.stringify(userGraph, null, 2), 'utf-8');
+  await fs.rename(tempPath, userGraphFile);
+
+  console.log(`[KnowledgeGraphStorage] Copied default graph to user ${userId}`);
+}

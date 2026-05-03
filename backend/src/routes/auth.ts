@@ -14,6 +14,7 @@ import {
   verifyPassword,
   toUserWithoutPassword,
 } from '../services/userService';
+import { copyDefaultGraphToUser } from '../services/knowledgeGraphStorage';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -135,6 +136,14 @@ router.post(
         dailyReminder: false,
       },
     });
+
+    // Copy default knowledge graph to new user's personal graph
+    try {
+      await copyDefaultGraphToUser(user.id);
+    } catch (err) {
+      console.error('[Auth] Failed to initialize user graph:', err);
+      // Non-fatal — user can still use the app
+    }
 
     // Send verification email — non-blocking, failures don't break registration
     sendVerificationEmail(email, verificationCode, name).catch((err) => {

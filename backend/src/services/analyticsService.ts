@@ -22,9 +22,9 @@ export interface DashboardStats {
 /**
  * Get total count of KnowledgePoint nodes from local cache
  */
-async function getTotalKnowledgeNodes(): Promise<number> {
+async function getTotalKnowledgeNodes(userId?: string): Promise<number> {
   try {
-    const graph = await getKnowledgeGraph();
+    const graph = await getKnowledgeGraph(userId);
     return graph.nodes.length;
   } catch (error) {
     console.warn('[Analytics] Failed to get total nodes from cache:', error);
@@ -100,7 +100,7 @@ async function getTotalUploads(): Promise<number> {
  */
 export async function getDashboardStats(userId?: string): Promise<DashboardStats> {
   // Get total nodes from Neo4j
-  const totalNodes = await getTotalKnowledgeNodes();
+  const totalNodes = await getTotalKnowledgeNodes(userId);
 
   // Get learned nodes from user progress
   const progress = await userProgressService.loadProgress(userId ?? '');
@@ -174,7 +174,7 @@ export async function getDomainProgress(userId?: string): Promise<Array<{
   percentage: number;
 }>> {
   // Use local cached graph instead of Neo4j
-  const graph = await getKnowledgeGraph();
+  const graph = await getKnowledgeGraph(userId);
   const nodes = graph.nodes;
   
   // Get learned nodes
