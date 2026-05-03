@@ -363,7 +363,7 @@ Keywords: ${neo4jNode.keywords?.join(', ') || 'None'}
   // If not found in Neo4j, try local graph
   if (!topicContent) {
     try {
-      const graph = await getKnowledgeGraph();
+      const graph = await getKnowledgeGraph(userId);
       const node = graph.nodes.find(n => n.id === topicId || n.name.toLowerCase() === topicId.toLowerCase());
       if (node) {
         topicTitle = node.name;
@@ -817,7 +817,7 @@ function getTopicDefaultQuestions(topic: string): { questions: QuizQuestion[] } 
 }
 
 export async function generateAdaptiveQuiz(weakNodeIds: string[], count: number, userId?: string): Promise<QuizSession> {
-  const graph = await getKnowledgeGraph();
+  const graph = await getKnowledgeGraph(userId);
   const allNodes = graph.nodes;
 
   let targetNodes: InternalGraphNode[] = allNodes.filter(n => weakNodeIds.includes(n.id));

@@ -4,6 +4,8 @@
  */
 
 import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
+import { asyncHandler } from '../middleware/errorHandler';
 import { generateQuiz, generateTopicQuiz, submitQuiz, getQuizSession, getQuizStats, generateAdaptiveQuiz } from '../services/quizService';
 import { userProgressService } from '../services/userProgressService';
 import { getKnowledgeGraph, InternalGraphNode } from '../services/knowledgeGraphStorage';
@@ -91,7 +93,7 @@ router.post('/topic/:topicId', async (req, res) => {
   }
 });
 
-router.get('/adaptive', async (req, res) => {
+router.get('/adaptive', authenticate, asyncHandler(async (req, res) => {
   try {
     const userId = req.user?.userId;
     const count = parseInt(req.query.count as string, 10) || 5;
@@ -99,7 +101,7 @@ router.get('/adaptive', async (req, res) => {
     const progress = await userProgressService.loadProgress(userId ?? '');
     const nodeMastery = progress.nodeMastery || {};
 
-    const graph = await getKnowledgeGraph();
+    const graph = await getKnowledgeGraph(userId);
     const allNodeIds = graph.nodes.map((n: InternalGraphNode) => n.id);
 
     const weakNodes = (allNodeIds as string[])
@@ -138,7 +140,7 @@ router.get('/adaptive', async (req, res) => {
       error: 'Failed to generate adaptive quiz'
     });
   }
-});
+}));
 
 /**
  * GET /api/quiz/session/:sessionId

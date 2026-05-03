@@ -186,7 +186,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
         const practiceQuestions = await generatePracticeQuestions(q.questionText, 5);
         console.log(`[JobProcessor] Generated ${practiceQuestions.length} practice questions`);
 
-        const matchResult = await matchOCRToKnowledgeTree(q.questionText, knowledgeTreeContext);
+        const matchResult = await matchOCRToKnowledgeTree(q.questionText, knowledgeTreeContext, context.job.userId ?? '');
         const matchedNodes = matchResult.matchedNodes.map(m => ({
           kbEntryId: m.nodeId,
           confidence: m.confidence,
@@ -239,7 +239,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
         const practiceQuestions = await generatePracticeQuestions(q.questionText, 5);
         console.log(`[JobProcessor] Generated ${practiceQuestions.length} practice questions for Q${q.questionIndex}`);
 
-        const matchResult = await matchOCRToKnowledgeTree(q.questionText, knowledgeTreeContext);
+        const matchResult = await matchOCRToKnowledgeTree(q.questionText, knowledgeTreeContext, context.job.userId ?? '');
         const matchedNodes = matchResult.matchedNodes.map(m => ({
           kbEntryId: m.nodeId,
           confidence: m.confidence,
@@ -337,7 +337,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
       console.log(`[JobProcessor] Exported knowledge tree (${knowledgeTreeContext.length} chars)`);
 
       // 2. AI matches OCR to knowledge nodes (REAL AI, not mock)
-      const matchResult = await matchOCRToKnowledgeTree(ocrResult.text, knowledgeTreeContext);
+      const matchResult = await matchOCRToKnowledgeTree(ocrResult.text, knowledgeTreeContext, context.job.userId ?? '');
       console.log(`[JobProcessor] AI matched ${matchResult.matchedNodes.length} nodes:`,
         matchResult.matchedNodes.map(m => `${m.nodeId}(${m.confidence})`).join(', '));
 
@@ -359,7 +359,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
     context.currentStep = ProcessingStep.GENERATE_GRAPH;
     await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.GENERATE_GRAPH });
     const graphData = await generateGraphFromText(ocrResult.text);
-    const storage = getKnowledgeGraphStorage();
+    const storage = getKnowledgeGraphStorage(context.job.userId ?? '');
     await storage.initialize();
     const mergeResult = await storage.mergeJobGraph(job.id, graphData);
     console.log(`[JobProcessor] Knowledge graph updated: +${mergeResult.nodesAdded} nodes, +${mergeResult.edgesAdded} edges`);
@@ -388,7 +388,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
     await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.GENERATE_CARDS });
     for (const nodeId of uniqueNodeIds) {
       try {
-        await generateFlashcards(nodeId);
+        await generateFlashcards(nodeId, context.job.userId ?? '');
         console.log(`[JobProcessor] ✅ Generated flashcards for node: ${nodeId}`);
       } catch (err) {
         console.warn(`[JobProcessor] ⚠️ Failed flashcards for ${nodeId}:`, err);
@@ -399,7 +399,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
     await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.GENERATE_CHEATSHEET });
     for (const nodeId of uniqueNodeIds) {
       try {
-        await generateCheatSheet(nodeId);
+        await generateCheatSheet(nodeId, context.job.userId ?? '');
         console.log(`[JobProcessor] ✅ Generated cheat sheet for node: ${nodeId}`);
       } catch (err) {
         console.warn(`[JobProcessor] ⚠️ Failed cheat sheet for ${nodeId}:`, err);
@@ -410,7 +410,7 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
     await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.GENERATE_REVIEW });
     for (const nodeId of uniqueNodeIds) {
       try {
-        await generateStudyNotes(nodeId);
+        await generateStudyNotes(nodeId, context.job.userId ?? '');
         console.log(`[JobProcessor] ✅ Generated study notes for node: ${nodeId}`);
       } catch (err) {
         console.warn(`[JobProcessor] ⚠️ Failed study notes for ${nodeId}:`, err);

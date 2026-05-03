@@ -22,7 +22,7 @@ export interface Recommendation {
 export async function getRecommendations(userId?: string): Promise<Recommendation[]> {
   try {
     // Use cached knowledge graph (falls back to local JSON if Neo4j unavailable)
-    const allNodes = await getKnowledgeGraph();
+    const allNodes = await getKnowledgeGraph(userId);
     
     // Get learned nodes
     const learnedNodeIds = await userProgressService.getKnownNodeIds(userId ?? '');
