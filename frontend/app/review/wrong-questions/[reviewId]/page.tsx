@@ -2,14 +2,12 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation/Navigation';
 import { usePageLoading } from '@/components/loading/LoadingScreen';
 import { LoadingOverlay } from '@/components/loading/MinimalLoader';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 interface PracticeQuestion {
   id: string;
@@ -61,9 +59,10 @@ export default function WrongQuestionReviewPage({ params }: { params: Promise<{ 
   const fetchReview = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/wrong-questions/due`);
-      if (res.data.success) {
-        const reviews: WrongQuestionData[] = res.data.data.reviews || [];
+      const res = await api.get('/api/wrong-questions/due');
+      const json = await res.json();
+      if (json.success) {
+        const reviews: WrongQuestionData[] = json.data.reviews || [];
         const found = reviews.find(r => r.reviewId === reviewId);
         setReview(found || null);
       }
@@ -84,14 +83,13 @@ export default function WrongQuestionReviewPage({ params }: { params: Promise<{ 
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/wrong-questions/${review.reviewId}/submit`, {
-        quality,
-      });
-      if (res.data.success) {
-        setNextReview(res.data.data.nextReview || '');
+      const res = await api.post(`/api/wrong-questions/${review.reviewId}/submit`, { quality });
+      const json = await res.json();
+      if (json.success) {
+        setNextReview(json.data.nextReview || '');
         setCompleted(true);
       } else {
-        setSubmitError(res.data.error || 'Failed to submit review');
+        setSubmitError(json.error || 'Failed to submit review');
       }
     } catch {
       setSubmitError('Failed to submit review');

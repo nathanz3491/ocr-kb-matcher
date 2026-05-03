@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Navigation } from '@/components/navigation/Navigation';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import ReactMarkdown from 'react-markdown';
@@ -9,8 +9,6 @@ import {
   Loader2, Send, Trash2, Brain, MessageCircle, Sparkles, Bot, User, X, BookOpen, 
   Plus, MessageSquare, Clock, ChevronRight, MoreVertical, Pencil, Copy, Zap
 } from 'lucide-react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -57,9 +55,10 @@ export default function ChatPage() {
 
   const fetchKnowledgeContext = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/chat/knowledge-context`);
-      if (res.data.success) {
-        const ctx = res.data.data;
+      const res = await api.get('/api/chat/knowledge-context');
+      const json = await res.json();
+      if (json.success) {
+        const ctx = json.data;
         setKnowledgeContext(ctx);
         const nodes = ctx.totalNodes ?? 0;
         const edges = ctx.totalEdges ?? 0;
@@ -103,7 +102,7 @@ Your knowledge graph contains **${nodes}** nodes and **${edges}** connections. W
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      const response = await fetch(`/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage, sessionId: activeSession }),
@@ -171,7 +170,7 @@ Your knowledge graph contains **${nodes}** nodes and **${edges}** connections. W
 
   const clearChat = async () => {
     if (activeSession !== 'default') {
-      await axios.delete(`${API_BASE_URL}/api/chat/history/${activeSession}`).catch(() => {});
+      await api.delete(`/api/chat/history/${activeSession}`).catch(() => {});
     }
     setMessages([
       {
@@ -183,7 +182,7 @@ Your knowledge graph contains **${nodes}** nodes and **${edges}** connections. W
 
   const createNewSession = async () => {
     if (activeSession !== 'default') {
-      await axios.delete(`${API_BASE_URL}/api/chat/history/${activeSession}`).catch(() => {});
+      await api.delete(`/api/chat/history/${activeSession}`).catch(() => {});
     }
     const newId = `session_${Date.now()}`;
     const newSession: ChatSession = {
@@ -205,7 +204,7 @@ Your knowledge graph contains **${nodes}** nodes and **${edges}** connections. W
   const deleteSession = async (sessionId: string) => {
     if (sessionId === 'default') return; // Can't delete default
     const sessionIdToDelete = sessionId;
-    await axios.delete(`${API_BASE_URL}/api/chat/history/${sessionIdToDelete}`).catch(() => {});
+    await api.delete(`/api/chat/history/${sessionIdToDelete}`).catch(() => {});
     setSessions(prev => prev.filter(s => s.id !== sessionIdToDelete));
     if (activeSession === sessionIdToDelete) {
       setActiveSession('default');

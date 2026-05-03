@@ -5,12 +5,10 @@ import { Navigation } from '@/components/navigation/Navigation';
 import { Loader2, FileText, BookOpen, ChevronRight, Layers, Moon, Sun, Brain, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { usePageLoading } from '@/components/loading/LoadingScreen';
 import { LoadingOverlay } from '@/components/loading/MinimalLoader';
 import { useTheme } from '@/components/theme/ThemeProvider';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 interface CheatSheet {
   nodeId: string;
@@ -74,24 +72,31 @@ function ReviewContent({ initialTab = 'cheat-sheets' }: ReviewContentProps) {
     try {
       setPageLoading(0, true);
       const [cheatRes, notesRes, reviewsRes, wrongRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/study/cheat-sheets`, { timeout: 5000 }),
-        axios.get(`${API_BASE_URL}/api/study/notes`, { timeout: 5000 }),
-        axios.get(`${API_BASE_URL}/api/reviews/due`, { timeout: 5000 }).catch(() => ({ data: { success: false } })),
-        axios.get(`${API_BASE_URL}/api/wrong-questions/due`, { timeout: 5000 }).catch(() => ({ data: { success: false } })),
+        api.get('/api/study/cheat-sheets'),
+        api.get('/api/study/notes'),
+        api.get('/api/reviews/due').catch(() => null),
+        api.get('/api/wrong-questions/due').catch(() => null),
       ]);
 
-      if (cheatRes.data.success) {
-        setCheatSheets(cheatRes.data.data.sheets || []);
+      const [cheatJson, notesJson, reviewsJson, wrongJson] = await Promise.all([
+        cheatRes?.json().catch(() => ({ success: false })),
+        notesRes?.json().catch(() => ({ success: false })),
+        reviewsRes?.json().catch(() => ({ success: false })),
+        wrongRes?.json().catch(() => ({ success: false })),
+      ]);
+
+      if (cheatJson.success) {
+        setCheatSheets(cheatJson.data.sheets || []);
       }
-      if (notesRes.data.success) {
-        setStudyNotes(notesRes.data.data.notes || []);
+      if (notesJson.success) {
+        setStudyNotes(notesJson.data.notes || []);
       }
-      if (reviewsRes.data.success) {
-        setDueReviews(reviewsRes.data.data.reviews || []);
-        setReviewStats(reviewsRes.data.data.stats || { totalDue: 0, totalReviewed: 0, retentionRate: 0 });
+      if (reviewsJson.success) {
+        setDueReviews(reviewsJson.data.reviews || []);
+        setReviewStats(reviewsJson.data.stats || { totalDue: 0, totalReviewed: 0, retentionRate: 0 });
       }
-      if (wrongRes.data.success) {
-        setWrongReviews(wrongRes.data.data.reviews || []);
+      if (wrongJson.success) {
+        setWrongReviews(wrongJson.data.reviews || []);
       }
     } catch (err) {
       console.warn('Using offline mode for study materials');

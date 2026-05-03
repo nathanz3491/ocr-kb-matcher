@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/navigation/Navigation';
 import { ArrowLeft, Search, Network } from 'lucide-react';
@@ -11,8 +11,6 @@ import { LocalKnowledgeGraph, LocalKnowledgeGraphRef } from '@/components/result
 import { usePageLoading } from '@/components/loading/LoadingScreen';
 import { LoadingOverlay } from '@/components/loading/MinimalLoader';
 import { Notification } from '@/components/notification/Notification';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function KnowledgeGraphPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +28,7 @@ export default function KnowledgeGraphPage() {
     
     const syncGraph = async () => {
       try {
-        const res = await axios.post(`${API_BASE_URL}/api/local-graph/sync`);
+        await api.post('/api/local-graph/sync', {});
         console.log('[Knowledge Graph] Graph synced successfully');
       } catch (error) {
         console.warn('[Knowledge Graph] Graph sync failed:', error);

@@ -4,7 +4,7 @@ const BACKEND_URL = process.env.BACKEND_PROXY_URL || 'http://localhost:3001';
 
 async function proxyRequest(request: NextRequest, path: string[], method: string) {
   const searchParams = request.nextUrl.search;
-  const url = `${BACKEND_URL}/${path.join('/')}${searchParams ? '?' + searchParams : ''}`;
+  const url = `${BACKEND_URL}/api/${path.join('/')}${searchParams ? '?' + searchParams : ''}`;
 
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {

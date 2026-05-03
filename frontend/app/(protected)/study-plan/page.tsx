@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { authApi } from '@/lib/auth';
+import { api } from '@/lib/api';
 import { Navigation } from '@/components/navigation/Navigation';
 import { useToast } from '@/components/notification/Toast';
 import {
@@ -11,8 +10,6 @@ import {
   BookOpen, AlertCircle, Brain, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface StudyTask {
   nodeId: string;
@@ -147,13 +144,11 @@ export default function StudyPlanPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get<{ success: boolean; data: WeeklyStudyPlan }>(
-        `${API_BASE_URL}/api/study-plan`,
-        { headers: { Authorization: `Bearer ${authApi.getAccessToken()}` } }
-      );
-      if (res.data.success) {
-        setStudyPlan(res.data.data);
-        const todayPlan = res.data.data.days.find((d: DailyPlan) => isToday(d.date));
+      const res = await api.get('/api/study-plan');
+      const json = await res.json();
+      if (json.success) {
+        setStudyPlan(json.data);
+        const todayPlan = json.data.days.find((d: DailyPlan) => isToday(d.date));
         setSelectedDay(todayPlan?.date ?? null);
       }
     } catch {
@@ -169,27 +164,20 @@ export default function StudyPlanPage() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000);
     try {
-      const res = await axios.post<{ success: boolean; data: WeeklyStudyPlan }>(
-        `${API_BASE_URL}/api/study-plan/generate`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${authApi.getAccessToken()}` },
-          timeout: 25000,
-          signal: controller.signal,
-        }
-      );
+      const res = await api.post('/api/study-plan/generate', {});
       clearTimeout(timeout);
-      if (res.data.success) {
-        setStudyPlan(res.data.data);
-        const todayPlan = res.data.data.days.find((d: DailyPlan) => isToday(d.date));
-        setSelectedDay(todayPlan?.date ?? res.data.data.days[0]?.date ?? null);
+      const json = await res.json();
+      if (json.success) {
+        setStudyPlan(json.data);
+        const todayPlan = json.data.days.find((d: DailyPlan) => isToday(d.date));
+        setSelectedDay(todayPlan?.date ?? json.data.days[0]?.date ?? null);
         addToast('Study plan generated!', 'success');
       } else {
         addToast('Failed to generate plan', 'error');
       }
     } catch (err: any) {
       clearTimeout(timeout);
-      if (err.name === 'AbortError' || err.code === 'ECONNABORTED' || axios.isAxiosError(err) && !err.response) {
+      if (err.name === 'AbortError') {
         addToast('Request timed out. Please try again.', 'error');
         setError('Generation timed out. Please try again.');
       } else {

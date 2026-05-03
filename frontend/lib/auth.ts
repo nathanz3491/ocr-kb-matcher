@@ -1,28 +1,7 @@
-import axios from 'axios';
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-// Attach auth token to every axios request and redirect to login on 401
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('authUser');
-      window.location.href = '/auth/login';
-    }
-    return Promise.reject(error);
-  }
-);
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+// Use relative paths so requests go through Next.js proxy in production
+// In dev: relative paths still work (Next.js dev server proxies /api/* → backend)
+// In prod via tunnel: /api/* → Next.js route handler → backend
 
 export interface AuthResponse {
   success: boolean;
@@ -40,11 +19,13 @@ export interface User {
   name: string;
   emailVerified: boolean;
   accountType?: 'student' | 'parent';
+  parentCode?: string | null;
+  parentCodeExpires?: number | null;
 }
 
 export const authApi = {
   register: async (email: string, password: string, name: string, accountType?: 'student' | 'parent'): Promise<AuthResponse> => {
-    const res = await fetch(`${API}/api/auth/register`, {
+    const res = await fetch(`/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name, accountType }),
@@ -53,7 +34,7 @@ export const authApi = {
   },
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const res = await fetch(`${API}/api/auth/login`, {
+    const res = await fetch(`/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -62,7 +43,7 @@ export const authApi = {
   },
 
   verifyEmail: async (email: string, code: string): Promise<AuthResponse> => {
-    const res = await fetch(`${API}/api/auth/verify-email`, {
+    const res = await fetch(`/api/auth/verify-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code }),
@@ -71,7 +52,7 @@ export const authApi = {
   },
 
   resendCode: async (email: string): Promise<AuthResponse> => {
-    const res = await fetch(`${API}/api/auth/resend-code`, {
+    const res = await fetch(`/api/auth/resend-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -81,7 +62,7 @@ export const authApi = {
 
   logout: async (): Promise<AuthResponse> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/auth/logout`, {
+    const res = await fetch(`/api/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -93,7 +74,7 @@ export const authApi = {
   },
 
   refresh: async (refreshToken: string): Promise<AuthResponse> => {
-    const res = await fetch(`${API}/api/auth/refresh`, {
+    const res = await fetch(`/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -104,10 +85,19 @@ export const authApi = {
   getMe: async (): Promise<AuthResponse> => {
     const token = authApi.getAccessToken();
     if (!token) return { success: false, error: 'No token' };
-    const res = await fetch(`${API}/api/auth/me`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    return res.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(`/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      return res.json();
+    } catch {
+      clearTimeout(timeout);
+      return { success: false, error: 'Request failed' };
+    }
   },
 
   getAccessToken: (): string | null => {
@@ -132,7 +122,7 @@ export const authApi = {
 export const parentMonitorApi = {
   getStudents: async (): Promise<{ success: boolean; data?: Array<{ id: string; name: string; email: string }>; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/auth/students`, {
+    const res = await fetch(`/api/auth/students`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -140,7 +130,7 @@ export const parentMonitorApi = {
 
   generateCode: async (parentId?: string, parentName?: string, parentEmail?: string): Promise<{ success: boolean; data?: { code: string; expiresAt: number }; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/auth/students/generate-code`, {
+    const res = await fetch(`/api/auth/students/generate-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ parentId, parentName, parentEmail }),
@@ -150,7 +140,7 @@ export const parentMonitorApi = {
 
   getCodeStatus: async (studentId: string): Promise<{ success: boolean; data?: { hasPendingCode: boolean; codeExpires?: number }; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/auth/students/${studentId}/code-status`, {
+    const res = await fetch(`/api/auth/students/${studentId}/code-status`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -158,7 +148,7 @@ export const parentMonitorApi = {
 
   verifyCode: async (studentId: string, code: string): Promise<{ success: boolean; data?: { link: any }; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/auth/verify-parent-code`, {
+    const res = await fetch(`/api/auth/verify-parent-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ studentId, code }),
@@ -168,7 +158,7 @@ export const parentMonitorApi = {
 
   getLinkedStudents: async (): Promise<{ success: boolean; data?: Array<{ linkId: string; studentId: string; studentName: string; studentEmail: string; linkedAt: string }>; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/students`, {
+    const res = await fetch(`/api/parent-monitor/students`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -176,7 +166,7 @@ export const parentMonitorApi = {
 
   getStudentOverview: async (studentId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/student/${studentId}/overview`, {
+    const res = await fetch(`/api/parent-monitor/student/${studentId}/overview`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -184,7 +174,7 @@ export const parentMonitorApi = {
 
   getStudentKnowledgeGraph: async (studentId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/student/${studentId}/knowledge-graph`, {
+    const res = await fetch(`/api/parent-monitor/student/${studentId}/knowledge-graph`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -192,7 +182,7 @@ export const parentMonitorApi = {
 
   getStudentReviews: async (studentId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/student/${studentId}/reviews`, {
+    const res = await fetch(`/api/parent-monitor/student/${studentId}/reviews`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -200,7 +190,7 @@ export const parentMonitorApi = {
 
   getStudentQuiz: async (studentId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/student/${studentId}/quiz`, {
+    const res = await fetch(`/api/parent-monitor/student/${studentId}/quiz`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.json();
@@ -208,7 +198,24 @@ export const parentMonitorApi = {
 
   revokeLink: async (linkId: string): Promise<{ success: boolean; error?: string }> => {
     const token = authApi.getAccessToken();
-    const res = await fetch(`${API}/api/parent-monitor/link/${linkId}`, {
+    const res = await fetch(`/api/parent-monitor/link/${linkId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  getMyParentLinks: async (): Promise<{ success: boolean; data?: Array<{ linkId: string; parentId: string; parentName: string; parentEmail: string; linkedAt: string }>; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/auth/my-parent-links`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  unlinkParent: async (linkId: string): Promise<{ success: boolean; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/auth/my-parent-links/${linkId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
     });

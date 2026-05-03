@@ -5,10 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/navigation/Navigation';
 import { Loader2, ArrowLeft, RotateCcw, ChevronLeft, ChevronRight, Eye, EyeOff, CheckCircle, XCircle, Layers } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Flashcard {
   id: string;
@@ -49,12 +47,13 @@ export default function FlashcardStudyPage() {
   const fetchFlashcards = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/flashcards/${nodeId}`, { timeout: 10000 });
-      if (res.data.success) {
-        setFlashcardSet(res.data.data);
+      const res = await api.get(`/api/flashcards/${nodeId}`);
+      const json = await res.json();
+      if (json.success) {
+        setFlashcardSet(json.data);
       }
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err?.response?.status === 404) {
         setError('Flashcards not found for this topic. Upload a document that covers this knowledge point.');
       } else {
         setError('Unable to load flashcards. Please try again later.');

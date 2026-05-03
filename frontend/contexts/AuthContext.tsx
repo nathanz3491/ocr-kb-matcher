@@ -34,11 +34,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const result = await authApi.getMe();
-    if (result.success && result.data?.user) {
-      const freshUser = result.data.user;
-      setUser(freshUser);
-      try { localStorage.setItem('authUser', JSON.stringify(freshUser)); } catch {}
+    try {
+      const result = await authApi.getMe();
+      if (result.success && result.data?.user) {
+        const freshUser = result.data.user;
+        setUser(freshUser);
+        try { localStorage.setItem('authUser', JSON.stringify(freshUser)); } catch {}
+      }
+    } catch {
+      setUser(null);
     }
   }, []);
 
@@ -54,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {}
     const token = authApi.getAccessToken();
     if (token) {
-      refreshUser();
+      refreshUser().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }

@@ -5,10 +5,8 @@ import { useParams } from 'next/navigation';
 import { Navigation } from '@/components/navigation/Navigation';
 import { Loader2, ArrowLeft, BookOpen, RotateCcw, Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface StudyNotes {
   nodeId: string;
@@ -37,17 +35,19 @@ export default function StudyNotesPage() {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/study/notes/${nodeId}`, { timeout: 10000 });
-      if (res.data.success) {
-        setNotes(res.data.data);
+      const res = await api.get(`/api/study/notes/${nodeId}`);
+      const json = await res.json();
+      if (json.success) {
+        setNotes(json.data);
       }
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err?.response?.status === 404) {
         setGenerating(true);
         try {
-          const res = await axios.post(`${API_BASE_URL}/api/study/notes/${nodeId}/generate`);
-          if (res.data.success) {
-            setNotes(res.data.data);
+          const res = await api.post(`/api/study/notes/${nodeId}/generate`, {});
+          const json = await res.json();
+          if (json.success) {
+            setNotes(json.data);
           }
         } catch (genErr) {
           setError('Failed to generate study notes');

@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import Link from 'next/link';
-import { 
-  BarChart3, TrendingUp, Award, BookOpen, CheckCircle2, Flame, 
+import {
+  BarChart3, TrendingUp, Award, BookOpen, CheckCircle2, Flame,
   Calendar, Trophy, Star, Target, TrendingDown, TrendingUp as TrendingUpIcon,
   AlertTriangle, Activity, Brain, Loader2, Gift, Download, Share2,
-  CheckCircle, ChevronRight
+  CheckCircle, ChevronRight, Users, Copy, UserMinus
 } from 'lucide-react';
 import { Navigation } from '@/components/navigation/Navigation';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { useAuth } from '@/contexts/AuthContext';
+import { parentMonitorApi, authApi, User } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 // Types
 interface DashboardStats {
@@ -94,8 +95,17 @@ const StatCard = React.memo(({ title, value, subtitle, icon, gradient }: StatCar
 // Main Page Component
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'progress' | 'certificates'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'progress' | 'certificates' | 'family'>('overview');
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
+
+  const { theme } = useTheme();
+  const { user: authUser } = useAuth();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [parentLinks, setParentLinks] = useState<Array<{ linkId: string; parentId: string; parentName: string; parentEmail: string; linkedAt: string }>>([]);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [copied, setCopied] = useState(false);
 
   // Data states
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -109,18 +119,21 @@ export default function DashboardPage() {
     const fetchAllData = async () => {
       try {
         const [statsRes, gapRes, timelineRes, certsRes, certStatsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/analytics/dashboard`),
-          axios.get(`${API_BASE_URL}/api/analytics/gap-analysis`),
-          axios.get(`${API_BASE_URL}/api/analytics/timeline`, { timeout: 10000 }),
-          axios.get(`${API_BASE_URL}/api/certificates`),
-          axios.get(`${API_BASE_URL}/api/certificates/stats/summary`)
+          api.get('/api/analytics/dashboard'),
+          api.get('/api/analytics/gap-analysis'),
+          api.get('/api/analytics/timeline'),
+          api.get('/api/certificates'),
+          api.get('/api/certificates/stats/summary')
         ]);
         if (cancelled) return;
-        if (statsRes.data.success) setStats(statsRes.data.data);
-        if (gapRes.data.success) setGapAnalysis(gapRes.data.data);
-        if (timelineRes.data.success) setTimelineData(timelineRes.data.data);
-        if (certsRes.data.success) setCertificates(certsRes.data.data);
-        if (certStatsRes.data.success) setCertStats(certStatsRes.data.data);
+        const [statsJson, gapJson, timelineJson, certsJson, certStatsJson] = await Promise.all([
+          statsRes.json(), gapRes.json(), timelineRes.json(), certsRes.json(), certStatsRes.json()
+        ]);
+        if (statsJson.success) setStats(statsJson.data);
+        if (gapJson.success) setGapAnalysis(gapJson.data);
+        if (timelineJson.success) setTimelineData(timelineJson.data);
+        if (certsJson.success) setCertificates(certsJson.data || []);
+        if (certStatsJson.success) setCertStats(certStatsJson.data);
       } catch {
         if (cancelled) return;
         setStats({ totalNodes: 50, learnedNodes: 15, progressPercentage: 30, streakDays: 3, totalUploads: 5 });
@@ -136,8 +149,77 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'family' && authUser) {
+      authApi.getMe().then(res => {
+        if (res.success && res.data?.user) {
+          setCurrentUser(res.data.user);
+        }
+      });
+      parentMonitorApi.getMyParentLinks().then(res => {
+        if (res.success && res.data) {
+          setParentLinks(res.data);
+        }
+      });
+    }
+  }, [activeTab, authUser]);
+
+  useEffect(() => {
+    if (!currentUser?.parentCode || !currentUser?.parentCodeExpires) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const calculateTimeLeft = () => {
+      const now = Date.now();
+      const expires = currentUser.parentCodeExpires!;
+      const remaining = Math.max(0, expires - now);
+      setTimeLeft(remaining);
+      if (remaining === 0 && currentUser.parentCode) {
+        setCurrentUser(prev => prev ? { ...prev, parentCode: null, parentCodeExpires: null } : null);
+      }
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [currentUser?.parentCode, currentUser?.parentCodeExpires]);
+
   const formatDate = useCallback((dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }, []);
+
+  const formatTimeLeft = useCallback((ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
+
+  const handleGenerateCode = useCallback(async () => {
+    setGeneratingCode(true);
+    const res = await parentMonitorApi.generateCode();
+    if (res.success && res.data) {
+      setCurrentUser(prev => prev ? { ...prev, parentCode: res.data!.code, parentCodeExpires: res.data!.expiresAt } : null);
+      setTimeLeft(res.data.expiresAt - Date.now());
+    }
+    setGeneratingCode(false);
+  }, []);
+
+  const handleCopyCode = useCallback(() => {
+    if (currentUser?.parentCode) {
+      navigator.clipboard.writeText(currentUser.parentCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [currentUser?.parentCode]);
+
+  const handleUnlinkParent = useCallback(async (linkId: string) => {
+    setUnlinkingId(linkId);
+    const res = await parentMonitorApi.unlinkParent(linkId);
+    if (res.success) {
+      setParentLinks(prev => prev.filter(link => link.linkId !== linkId));
+    }
+    setUnlinkingId(null);
   }, []);
 
   const activeDays = timelineData?.timeline.filter(day => day.count > 0) || [];
@@ -197,6 +279,7 @@ export default function DashboardPage() {
             { id: 'analytics', label: 'Analytics', icon: TrendingUp },
             { id: 'progress', label: 'Progress', icon: Activity },
             { id: 'certificates', label: 'Certificates', icon: Award },
+            ...(authUser?.accountType === 'student' ? [{ id: 'family' as const, label: 'Family', icon: Users }] : []),
           ].map((tab) => (
             <button
               key={tab.id}
@@ -730,6 +813,115 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'family' && (
+          <div className="space-y-8">
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/70 p-8 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-md">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-white">Parent Monitoring Code</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Share this code with your parents to let them monitor your progress</p>
+                </div>
+              </div>
+
+              {currentUser?.parentCode && timeLeft > 0 ? (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <div className="rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/20 p-8 text-center">
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Your Monitoring Code</p>
+                      <div className="flex items-center justify-center gap-3">
+                        <code className="text-4xl font-bold tracking-wider text-slate-800 dark:text-white font-mono">
+                          {currentUser.parentCode}
+                        </code>
+                        <button
+                          onClick={handleCopyCode}
+                          className="flex items-center justify-center h-10 w-10 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                          title="Copy code"
+                        >
+                          {copied ? <CheckCircle className="h-5 w-5 text-emerald-500" /> : <Copy className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5">
+                      <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                      Expires in {formatTimeLeft(timeLeft)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    Generate a new code to share with your parents. Codes expire after 30 minutes.
+                  </p>
+                  <button
+                    onClick={handleGenerateCode}
+                    disabled={generatingCode}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-3 text-sm font-medium text-white shadow-lg transition-all hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generatingCode ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Users className="h-5 w-5" />
+                    )}
+                    Generate Code
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/70 p-6 shadow-lg backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Linked Parents</h3>
+              
+              {parentLinks.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
+                  <p className="text-slate-600 dark:text-slate-400">
+                    No parents linked yet. Share your monitoring code with a parent to get started.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {parentLinks.map((link) => (
+                    <div
+                      key={link.linkId}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                          <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-800 dark:text-white">{link.parentName}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{link.parentEmail}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
+                            Linked {formatDate(link.linkedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleUnlinkParent(link.linkId)}
+                        disabled={unlinkingId === link.linkId}
+                        className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                      >
+                        {unlinkingId === link.linkId ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserMinus className="h-4 w-4" />
+                        )}
+                        Unlink
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

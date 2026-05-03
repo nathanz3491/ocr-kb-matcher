@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { 
   Loader2, CheckCircle, XCircle, ArrowLeft, Trophy, ArrowRight, Sparkles,
   Target, Zap, BookOpen, TrendingUp, AlertCircle, Brain, Lightbulb,
@@ -12,8 +12,6 @@ import Link from 'next/link';
 import { Navigation } from '@/components/navigation/Navigation';
 import { useConfetti } from '@/components/ui/Confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 type QuestionType = 'multiple_choice' | 'fill_in_blank' | 'true_false' | 'matching';
 
@@ -77,11 +75,10 @@ export default function AdaptiveQuizPage() {
   const fetchTargets = async () => {
     setStep('loading');
     try {
-      const res = await axios.get<{ success: boolean; data: { nodeMastery: Record<string, number> } }>(
-        `${API_BASE_URL}/api/user-progress`
-      );
-      if (res.data.success) {
-        const masteries = res.data.data.nodeMastery || {};
+      const res = await api.get('/api/user-progress');
+      const json = await res.json();
+      if (json.success) {
+        const masteries = json.data.nodeMastery || {};
         const sorted: Array<{ nodeId: string; mastery: number }> = Object.entries(masteries)
           .map(([nodeId, mastery]) => ({ nodeId, mastery }))
           .sort((a, b) => a.mastery - b.mastery);
@@ -101,13 +98,12 @@ export default function AdaptiveQuizPage() {
   const startAdaptiveQuiz = async (count: number = 5) => {
     setStep('generating');
     try {
-      const res = await axios.get<{ success: boolean; data: AdaptiveResponse }>(
-        `${API_BASE_URL}/api/quiz/adaptive?count=${count}`
-      );
-      if (res.data.success) {
-        setSessionId(res.data.data.sessionId);
-        setTargetedNodes(res.data.data.targetedNodes || []);
-        setQuestions(res.data.data.questions || []);
+      const res = await api.get(`/api/quiz/adaptive?count=${count}`);
+      const json = await res.json();
+      if (json.success) {
+        setSessionId(json.data.sessionId);
+        setTargetedNodes(json.data.targetedNodes || []);
+        setQuestions(json.data.questions || []);
         setStep('quiz');
       } else {
         setError('Failed to generate adaptive quiz');
@@ -175,14 +171,15 @@ export default function AdaptiveQuizPage() {
     });
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/quiz/submit`, {
+      const res = await api.post('/api/quiz/submit', {
         sessionId,
         answers,
         topicId: 'adaptive'
       });
+      const json = await res.json();
 
-      if (res.data.success) {
-        const questionsWithAnswers = res.data.data.questions || questions;
+      if (json.success) {
+        const questionsWithAnswers = json.data.questions || questions;
         const quizResult: QuizResult = {
           score: correctCount,
           totalQuestions,

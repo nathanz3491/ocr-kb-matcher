@@ -1,15 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import Link from 'next/link';
 import {
   Award, Trophy, GraduationCap, ChevronRight, Loader2, Clock,
   Star, Download
 } from 'lucide-react';
 import { Navigation } from '@/components/navigation/Navigation';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 // Types
 interface Certificate {
@@ -130,12 +128,13 @@ export default function CertificatesPage() {
     const fetchData = async () => {
       try {
         const [certsRes, statsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/certificates`),
-          axios.get(`${API_BASE_URL}/api/certificates/stats/summary`)
+          api.get('/api/certificates'),
+          api.get('/api/certificates/stats/summary')
         ]);
+        const [certsJson, statsJson] = await Promise.all([certsRes.json(), statsRes.json()]);
         if (cancelled) return;
-        if (certsRes.data.success) setCertificates(certsRes.data.data);
-        if (statsRes.data.success) setStats(statsRes.data.data);
+        if (certsJson.success) setCertificates(certsJson.data);
+        if (statsJson.success) setStats(statsJson.data);
       } catch {
         if (!cancelled) setError('Failed to load certificates');
       } finally {

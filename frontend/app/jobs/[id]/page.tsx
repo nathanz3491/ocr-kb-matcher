@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Network, List, CheckCircle, Circle, Clock, ChevronRight, FileText, FileSearch, AlertCircle, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -11,8 +11,6 @@ import { GraphData } from '@/types/graph';
 import { Navigation } from '@/components/navigation/Navigation';
 
 const ReactFlowGraph = dynamic(() => import('@/components/results/ReactFlowGraph').then(mod => ({ default: mod.ReactFlowGraph })), { ssr: false });
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Processing steps with labels and icons
 const PROCESSING_STEPS = [
@@ -134,10 +132,11 @@ export default function JobDetailPage() {
 
     const fetchFullJob = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/jobs/${jobId}`);
+        const response = await api.get(`/api/jobs/${jobId}`);
         if (cancelled) return;
-        if (response.data.success) {
-          setJob(response.data.data);
+        const json = await response.json();
+        if (json.success) {
+          setJob(json.data);
         } else {
           setError('Failed to fetch job');
         }
@@ -150,10 +149,11 @@ export default function JobDetailPage() {
 
     const pollStatus = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/jobs/${jobId}/status`);
+        const response = await api.get(`/api/jobs/${jobId}/status`);
         if (cancelled) return;
-        if (response.data.success) {
-          const { status: newStatus, currentStep } = response.data.data;
+        const json = await response.json();
+        if (json.success) {
+          const { status: newStatus, currentStep } = json.data;
           setJob(prev => prev ? { ...prev, status: newStatus, currentStep } : null);
           if (newStatus === 'completed' || newStatus === 'failed') {
             if (pollInterval) clearInterval(pollInterval);

@@ -5,10 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/navigation/Navigation';
 import { Loader2, ArrowLeft, FileText, ChevronLeft, ChevronRight, Plus, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface CheatSheet {
   nodeId: string;
@@ -38,18 +36,20 @@ export default function CheatSheetPage() {
   const fetchCheatSheet = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/study/cheat-sheets/${nodeId}`, { timeout: 10000 });
-      if (res.data.success) {
-        setCheatSheet(res.data.data);
+      const res = await api.get(`/api/study/cheat-sheets/${nodeId}`);
+      const json = await res.json();
+      if (json.success) {
+        setCheatSheet(json.data);
       }
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err?.response?.status === 404) {
         // Try to generate
         setGenerating(true);
         try {
-          const res = await axios.post(`${API_BASE_URL}/api/study/cheat-sheets/${nodeId}/generate`);
-          if (res.data.success) {
-            setCheatSheet(res.data.data);
+          const res = await api.post(`/api/study/cheat-sheets/${nodeId}/generate`, {});
+          const json = await res.json();
+          if (json.success) {
+            setCheatSheet(json.data);
           }
         } catch (genErr) {
           setError('Failed to generate cheat sheet');

@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Loader2, CheckCircle, XCircle, ArrowLeft, Trophy, BookOpen, ArrowRight, GripVertical } from 'lucide-react';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation/Navigation';
 import { useConfetti } from '@/components/ui/Confetti';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 type QuestionType = 'multiple_choice' | 'fill_in_blank' | 'true_false' | 'matching';
 
@@ -63,13 +61,12 @@ export default function TopicQuizPage() {
   const generateQuiz = async () => {
     setGenerating(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/quiz/topic/${nodeId}`, {
-        topicId: nodeId
-      });
+      const res = await api.post(`/api/quiz/topic/${nodeId}`, { topicId: nodeId });
+      const json = await res.json();
 
-      if (res.data.success) {
-        setSessionId(res.data.data.sessionId);
-        setQuestions(res.data.data.questions);
+      if (json.success) {
+        setSessionId(json.data.sessionId);
+        setQuestions(json.data.questions);
       } else {
         setQuestions(getDefaultQuestions(nodeId));
         setSessionId(`topic-${nodeId}-${Date.now()}`);
@@ -191,15 +188,16 @@ export default function TopicQuizPage() {
 
     // Submit to backend to update mastery
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/quiz/submit`, { 
+      const res = await api.post('/api/quiz/submit', { 
         sessionId, 
         answers,
         topicId: nodeId 
       });
+      const json = await res.json();
       
-      if (res.data.success) {
+      if (json.success) {
         // Use questions with correct answers and explanations from backend
-        const questionsWithAnswers = res.data.data.questions || questions;
+        const questionsWithAnswers = json.data.questions || questions;
         const mockResult: QuizResult = {
           score: correctCount,
           totalQuestions,
@@ -214,7 +212,7 @@ export default function TopicQuizPage() {
         triggerConfetti();
         
         // Show mastery increase notification if applicable
-        if (res.data.data?.masteryIncrease > 0) {
+        if (json.data?.masteryIncrease > 0) {
           console.log(`Mastery increased by ${res.data.data.masteryIncrease}%`);
         }
       }

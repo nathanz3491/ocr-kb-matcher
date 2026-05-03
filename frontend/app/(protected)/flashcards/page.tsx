@@ -4,11 +4,9 @@ import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/navigation/Navigation';
 import { Loader2, Layers, BookOpen, Plus, RefreshCw, Play, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { usePageLoading } from '@/components/loading/LoadingScreen';
 import { LoadingOverlay } from '@/components/loading/MinimalLoader';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 interface FlashcardSet {
   nodeId: string;
@@ -49,10 +47,11 @@ export default function FlashcardsPage() {
   const fetchFlashcards = async () => {
     try {
       setPageLoading(0, true);
-      const res = await axios.get(`${API_BASE_URL}/api/flashcards`, { timeout: 5000 });
-      if (res.data.success) {
-        setFlashcards(res.data.data.sets || []);
-        setProgress(res.data.data.progress || []);
+      const res = await api.get('/api/flashcards');
+      const json = await res.json();
+      if (json.success) {
+        setFlashcards(json.data.sets || []);
+        setProgress(json.data.progress || []);
         setIsOffline(false);
       }
     } catch (err) {

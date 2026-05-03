@@ -1,6 +1,30 @@
 import { createApp, getPort } from './app';
 import { getQueueProcessor } from './services/queueProcessor';
 import { getKnowledgeGraphStorage } from './services/knowledgeGraphStorage';
+import * as fs from 'fs';
+import * as path from 'path';
+
+function loadJwtSecretsFromEnvFile(): void {
+  const envPath = path.join(__dirname, '../../.env');
+  try {
+    const content = fs.readFileSync(envPath, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx < 0) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (key === 'JWT_SECRET' || key === 'JWT_REFRESH_SECRET') {
+        process.env[key] = value;
+        console.log(`[ENV] Loaded ${key} from .env`);
+      }
+    }
+  } catch (err) {
+    console.warn('[ENV] Could not read .env file:', err);
+  }
+}
+loadJwtSecretsFromEnvFile();
 
 /**
  * Main entry point for the OCR KB Matcher backend

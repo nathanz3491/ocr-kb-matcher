@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Navigation } from '@/components/navigation/Navigation';
 import { BookOpen, CheckCircle, Circle, Play, Trophy, Target, Loader2, Brain, Sparkles, Layers } from 'lucide-react';
 import Link from 'next/link';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 interface KnowledgeNode {
   id: string;
@@ -67,13 +65,15 @@ function LearningHubContent() {
   const fetchData = async () => {
     try {
       const [graphRes, recsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/local-graph`),
-        axios.get(`${API_BASE_URL}/api/recommendations`)
+        api.get('/api/local-graph'),
+        api.get('/api/recommendations')
       ]);
 
-      if (graphRes.data.success) {
-        const knownNodes: string[] = graphRes.data.data.knownNodes || [];
-        const nodes: KnowledgeNode[] = graphRes.data.data.nodes.map((n: any) => ({
+      const [graphJson, recsJson] = await Promise.all([graphRes.json(), recsRes.json()]);
+
+      if (graphJson.success) {
+        const knownNodes: string[] = graphJson.data.knownNodes || [];
+        const nodes: KnowledgeNode[] = graphJson.data.nodes.map((n: any) => ({
           id: n.id,
           label: n.name || n.label || n.id,
           category: n.domain || n.category || 'General',
@@ -83,8 +83,8 @@ function LearningHubContent() {
         setUnknownNodes(nodes.filter(n => n.status === 'unknown'));
       }
 
-      if (recsRes.data.success) {
-        setRecommendations(recsRes.data.data);
+      if (recsJson.success) {
+        setRecommendations(recsJson.data);
       }
     } catch (err) {
       console.error('Error fetching data:', err);

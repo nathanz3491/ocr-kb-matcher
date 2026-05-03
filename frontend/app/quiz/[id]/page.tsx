@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Loader2, CheckCircle, XCircle, ArrowLeft, Trophy, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation/Navigation';
 import { useConfetti } from '@/components/ui/Confetti';
 import { RelativeTime, getRelativeTime } from '@/components/ui/RelativeTime';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface QuizQuestion {
   id: string;
@@ -58,10 +56,11 @@ export default function QuizPage() {
   const generateQuiz = async () => {
     setGenerating(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/quiz/generate/${jobId}`);
-      if (res.data.success) {
-        setSessionId(res.data.data.sessionId);
-        setQuestions(res.data.data.questions);
+      const res = await api.post(`/api/quiz/generate/${jobId}`, {});
+      const json = await res.json();
+      if (json.success) {
+        setSessionId(json.data.sessionId);
+        setQuestions(json.data.questions);
       }
     } catch (err) {
       console.error('Error generating quiz:', err);
@@ -84,9 +83,10 @@ export default function QuizPage() {
       selectedAnswer
     }));
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/quiz/submit`, { sessionId, answers });
-      if (res.data.success) {
-        setResult(res.data.data);
+      const res = await api.post('/api/quiz/submit', { sessionId, answers });
+      const json = await res.json();
+      if (json.success) {
+        setResult(json.data);
         setSubmitted(true);
         // Trigger confetti on quiz completion
         triggerConfetti();

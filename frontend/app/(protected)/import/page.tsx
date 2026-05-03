@@ -59,8 +59,6 @@ const colorClasses: Record<string, { bg: string; text: string; border: string; h
   orange: { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', hover: 'hover:border-orange-400 dark:hover:border-orange-600', shadow: 'shadow-[0_8px_32px_-4px_rgba(249,115,22,0.15)]', hoverShadow: 'hover:shadow-[0_12px_40px_-4px_rgba(249,115,22,0.25)]', gradientFrom: 'from-orange-100/80 to-orange-50/40 dark:from-orange-900/60 dark:to-orange-800/30', gradientTo: 'group-hover:from-orange-200/80 group-hover:to-orange-100/40 dark:group-hover:from-orange-800/60 dark:group-hover:to-orange-700/30' },
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-
 // ---- Mode Selection ----
 function ModeSelector({ onSelect }: { onSelect: (mode: 'single' | 'multiple') => void }) {
   return (
@@ -259,7 +257,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await fetch(`/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'SINGLE' })
@@ -291,7 +289,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await fetch(`/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Text Import', jobType: 'SINGLE' })
@@ -352,7 +350,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'SINGLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await fetch(`/api/upload`, {
         method: 'POST',
         headers: {
           'x-upload-multiple': isMultiple ? 'true' : 'false',
@@ -636,7 +634,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'MULTIPLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await fetch(`/api/upload`, {
         method: 'POST',
         headers: {
           'x-upload-multiple': isMultiple ? 'true' : 'false',
@@ -674,7 +672,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await fetch(`/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'MULTIPLE' })
@@ -706,7 +704,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await fetch(`/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Text Import', jobType: 'MULTIPLE' })
@@ -1012,7 +1010,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'WRONG_SINGLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await fetch(`/api/upload`, {
         method: 'POST',
         headers: { 'x-upload-multiple': 'false' },
         body: formData,
@@ -1039,7 +1037,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await fetch(`/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'WRONG_SINGLE' })
@@ -1066,7 +1064,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await fetch(`/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Wrong Question Import', jobType: 'WRONG_SINGLE' })
@@ -1279,7 +1277,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     formData.append('wrongQuestionIndices', wrongQuestionIndices.trim());
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await fetch(`/api/upload`, {
         method: 'POST',
         headers: { 'x-upload-multiple': 'false' },
         body: formData,
@@ -1307,7 +1305,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await fetch(`/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'WRONG_MULTIPLE', wrongQuestionIndices: wrongQuestionIndices.trim() })
@@ -1335,7 +1333,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await fetch(`/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Wrong Questions Import', jobType: 'WRONG_MULTIPLE', wrongQuestionIndices: wrongQuestionIndices.trim() })

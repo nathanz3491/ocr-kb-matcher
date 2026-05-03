@@ -27,21 +27,16 @@ import chatRoutes from './routes/chat';
 import certificateRoutes from './routes/certificates';
 import authRoutes from './routes/auth';
 import userSettingsRoutes from './routes/userSettings';
+import parentMonitorRoutes from './routes/parentMonitor';
 
-// Load environment variables
-dotenv.config();
+dotenv.config({ override: true });
 
-/**
- * Create and configure Express application
- */
 export function createApp(): Application {
   const app = express();
 
-  // CORS configuration
   const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
   const corsOptions = {
     origin: function (origin: string | undefined, callback: (err: Error | null, origin?: string | boolean) => void) {
-      // Allow requests with no origin (mobile apps, curl, etc.) or from allowed origins
       if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed)) || /\.trycloudflare\.com$/.test(origin)) {
         callback(null, true);
       } else {
@@ -54,20 +49,12 @@ export function createApp(): Application {
     optionsSuccessStatus: 200,
   };
 
-  // Apply CORS middleware
   app.use(cors(corsOptions));
-
-  // Body parsing middleware
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-  // Request logging middleware
   app.use(loggerMiddleware);
-
-  // Attach userId from JWT if token is present (optional — allows guest access)
   app.use(optionalAuth);
 
-  // Mount routes
   app.use('/', routes);
   app.use('/api/kb', kbRoutes);
   app.use('/api/upload', uploadRoutes);
@@ -92,18 +79,12 @@ export function createApp(): Application {
   app.use('/api/auth', authRoutes);
   app.use('/api/user', userSettingsRoutes);
 
-  // 404 handler - must be after all routes
   app.use(notFoundHandler);
-
-  // Global error handler - must be last
   app.use(errorHandler);
 
   return app;
 }
 
-/**
- * Get port from environment variable or use default
- */
 export function getPort(): number {
   const port = process.env.PORT;
   if (port) {

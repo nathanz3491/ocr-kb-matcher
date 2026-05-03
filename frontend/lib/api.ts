@@ -1,11 +1,9 @@
 import { authApi } from './auth';
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export const api = {
   get: async (path: string): Promise<Response> => {
     const token = authApi.getAccessToken();
-    return fetch(`${API}${path}`, {
+    return fetch(path.startsWith('/') ? path : `/api/${path}`, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
         'Content-Type': 'application/json',
@@ -15,7 +13,7 @@ export const api = {
 
   post: async (path: string, body: unknown): Promise<Response> => {
     const token = authApi.getAccessToken();
-    return fetch(`${API}${path}`, {
+    return fetch(path.startsWith('/') ? path : `/api/${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +25,7 @@ export const api = {
 
   put: async (path: string, body: unknown): Promise<Response> => {
     const token = authApi.getAccessToken();
-    return fetch(`${API}${path}`, {
+    return fetch(path.startsWith('/') ? path : `/api/${path}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +37,7 @@ export const api = {
 
   delete: async (path: string): Promise<Response> => {
     const token = authApi.getAccessToken();
-    return fetch(`${API}${path}`, {
+    return fetch(path.startsWith('/') ? path : `/api/${path}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -50,7 +48,7 @@ export const api = {
 
   patch: async (path: string, body: unknown): Promise<Response> => {
     const token = authApi.getAccessToken();
-    return fetch(`${API}${path}`, {
+    return fetch(path.startsWith('/') ? path : `/api/${path}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
