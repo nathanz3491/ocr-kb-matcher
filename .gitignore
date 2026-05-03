@@ -38,3 +38,15 @@ Thumbs.db
 # Misc
 *.tsbuildinfo
 next-env.d.ts
+nul
+CON
+PRN
+AUX
+COM1
+LPT1
+nul
+CON
+PRN
+AUX
+COM1
+LPT1
