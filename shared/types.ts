@@ -11,6 +11,10 @@ export interface User {
   email?: string;
   name?: string;
   createdAt?: string;
+  accountType?: 'student' | 'parent' | 'teacher';
+  emailVerified?: boolean;
+  teacherCode?: string;
+  teacherCodeExpires?: number;
 }
 
 /**
@@ -160,6 +164,10 @@ export interface Job {
   questionResults?: QuestionMatchResult[];
   wrongResults?: WrongQuestionResult[];
   wrongQuestionIndices?: string;
+  /** Whether the uploaded content is off-topic (no relevant KB matches) */
+  offTopic?: boolean;
+  /** Average confidence score across matched nodes (0-1) */
+  matchConfidence?: number;
 }
 
 /**
@@ -334,4 +342,59 @@ export interface StudyNotes {
   relatedNodes: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ===========================================
+// PARENT ALERT TYPES
+// ===========================================
+
+/** Type of alert that can be triggered for a student */
+export type ParentAlertType = 'quiz_avoidance' | 'inactivity' | 'overdue_reviews' | 'off_topic_upload';
+
+/** Severity level of a parent alert */
+export type ParentAlertSeverity = 'warning' | 'critical';
+
+/** An alert triggered for a student, visible to their parent */
+export interface ParentAlert {
+  id: string;
+  parentId: string;
+  studentId: string;
+  studentName: string;
+  type: ParentAlertType;
+  severity: ParentAlertSeverity;
+  message: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  resolvedAt?: string;
+  readAt?: string;
+  dismissedAt?: string;
+  lastAlertedAt?: string;
+}
+
+/** Configurable thresholds for parent alert rules */
+export interface ParentAlertSettings {
+  quizAvoidanceDays: number;
+  inactivityDays: number;
+  overdueReviewsDays: number;
+  offTopicConfidence: number;
+}
+
+/** Digest email payload for a single parent */
+export interface ParentAlertDigest {
+  parentId: string;
+  parentEmail: string;
+  parentName: string;
+  students: ParentAlertStudentDigest[];
+}
+
+/** Per-student breakdown within a digest */
+export interface ParentAlertStudentDigest {
+  studentId: string;
+  studentName: string;
+  triggeredAlerts: ParentAlert[];
+  stats: {
+    reviewsDue: number;
+    lastQuizDate?: string;
+    lastActivityDate?: string;
+  };
 }
