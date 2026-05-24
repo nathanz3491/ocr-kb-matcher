@@ -228,3 +228,286 @@ export const emailService = {
 };
 
 export default emailService;
+
+
+
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  text: string
+): Promise<{ success: boolean; messageId?: string }> {
+  if (!SMTP_USER || !SMTP_PASS) {
+    console.log('[EmailService] SMTP not configured — DEV MODE. Would send to ' + to + ': ' + subject);
+    return { success: false };
+  }
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+    const info = await transporter.sendMail({
+      from: FROM_NAME + ' <' + FROM_EMAIL + '>',
+      to,
+      subject,
+      html,
+      text,
+    });
+    console.log('[EmailService] Email sent to ' + to + ': ' + subject);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('[EmailService] Failed to send to ' + to + ': ' + subject, err);
+    return { success: false };
+  }
+}
+// ===== Parent Alert & Digest Emails =====
+
+/**
+ * Send a real-time parent alert email (used for critical signals).
+ */
+export async function sendParentAlertEmail(
+  parentEmail: string,
+  parentName: string,
+  alert: {
+    type: string;
+    severity: string;
+    studentName: string;
+    message: string;
+    createdAt: string;
+  }
+): Promise<{ success: boolean; messageId?: string }> {
+  if (!parentEmail || parentEmail.trim() === '') {
+    console.warn('[EmailService] Skipping parent alert email — empty parentEmail');
+    return { success: false };
+  }
+
+  const severityColor = alert.severity === 'critical' ? '#ef4444' : '#f59e0b';
+  const severityLabel = alert.severity === 'critical' ? 'Critical' : 'Warning';
+  const timeAgo = formatTimeAgo(alert.createdAt);
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parent Alert — KIP</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:bold;">KIP — Knowledge Intelligence Platform</h1>
+              <p style="margin:4px 0 0;color:#e0e7ff;font-size:14px;">Parent Alert</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hello <strong>${escapeHtml(parentName)}</strong>,</p>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">We'd like to bring something to your attention regarding ${escapeHtml(alert.studentName)}.</p>
+              
+              <!-- Alert Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <span style="display:inline-block;background:${severityColor};color:#ffffff;font-size:12px;font-weight:bold;padding:4px 10px;border-radius:12px;">${severityLabel}</span>
+                          <span style="display:inline-block;margin-left:8px;font-size:12px;color:#6b7280;text-transform:uppercase;">${escapeHtml(alert.type.replace('_', ' '))}</span>
+                        </td>
+                        <td align="right" style="font-size:12px;color:#9ca3af;">${timeAgo}</td>
+                      </tr>
+                    </table>
+                    <p style="margin:12px 0 0;font-size:14px;color:#374151;">${escapeHtml(alert.message)}</p>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Visit your parent dashboard to review and manage alerts.</p>
+              
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:6px;">
+                    <a href="https://mastri.app/parent-monitor" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">View Parent Dashboard</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 32px;">
+              <p style="margin:0 0 8px;font-size:12px;color:#9ca3af;text-align:center;">
+                You received this because your account is linked to a student on KIP.
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
+                <a href="https://mastri.app/settings?unsubscribe=${encodeURIComponent(parentEmail)}" style="color:#6b7280;">Unsubscribe from alerts</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Hello ${parentName},\n\nAlert for ${alert.studentName}: ${alert.message}\n\nVisit https://mastri.app/parent-monitor to review.\n\nUnsubscribe: https://mastri.app/settings?unsubscribe=${encodeURIComponent(parentEmail)}`;
+
+  return sendEmail(parentEmail, `Alert: ${alert.studentName} — ${alert.type.replace('_', ' ')}`, html, text);
+}
+
+/**
+ * Send a daily digest email to a parent.
+ */
+export async function sendParentDigestEmail(
+  parentEmail: string,
+  parentName: string,
+  students: Array<{
+    studentId: string;
+    studentName: string;
+    triggeredAlerts: Array<{ type: string; severity: string; message: string; createdAt: string; studentName: string }>;
+    stats: {
+      reviewsDue: number;
+      lastQuizDate?: string;
+      lastActivityDate?: string;
+    };
+  }>
+): Promise<{ success: boolean; messageId?: string }> {
+  if (!parentEmail || parentEmail.trim() === '') {
+    console.warn('[EmailService] Skipping digest email — empty parentEmail');
+    return { success: false };
+  }
+
+  const studentsWithAlerts = students.filter(s => s.triggeredAlerts.length > 0);
+
+  // If no alerts, still send a positive digest email
+  const studentCardsHtml = students.map(student => {
+    const alertRows = student.triggeredAlerts.map(alert => {
+      const color = alert.severity === 'critical' ? '#ef4444' : '#f59e0b';
+      const label = alert.severity === 'critical' ? 'Critical' : 'Warning';
+      return `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
+            <span style="display:inline-block;background:${color};color:#ffffff;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:10px;margin-right:8px;">${label}</span>
+            <span style="font-size:13px;color:#374151;">${escapeHtml(alert.message)}</span>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const noAlertMsg = student.triggeredAlerts.length === 0
+      ? '<span style="color:#10b981;font-size:13px;">On track</span>'
+      : '';
+
+    return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;overflow:hidden;">
+        <tr>
+          <td style="background:#f9fafb;padding:12px 16px;border-bottom:1px solid #e5e7eb;">
+            <strong style="font-size:15px;color:#111827;">${escapeHtml(student.studentName)}</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 16px;">
+            ${noAlertMsg}
+            <table width="100%" cellpadding="0" cellspacing="0">
+              ${alertRows}
+            </table>
+            ${student.stats.reviewsDue > 0 ? `<p style="margin:8px 0 0;font-size:12px;color:#6b7280;">Reviews due: ${student.stats.reviewsDue}</p>` : ''}
+          </td>
+        </tr>
+      </table>`;
+  }).join('');
+
+  const allOnTrack = studentsWithAlerts.length === 0;
+  const summaryColor = allOnTrack ? '#10b981' : '#f59e0b';
+  const summaryText = allOnTrack
+    ? 'Great news — all your students are on track today!'
+    : `${studentsWithAlerts.length} of ${students.length} student(s) have alerts that need attention.`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Digest — KIP</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:bold;">KIP — Daily Parent Digest</h1>
+              <p style="margin:4px 0 0;color:#e0e7ff;font-size:14px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 8px;font-size:16px;color:#111827;">Hello <strong>${escapeHtml(parentName)}</strong>,</p>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">${summaryText}</p>
+              
+              ${studentCardsHtml}
+              
+              <table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+                <tr>
+                  <td style="background:#4f46e5;border-radius:6px;">
+                    <a href="https://mastri.app/parent-monitor" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">View Full Dashboard</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 32px;">
+              <p style="margin:0 0 8px;font-size:12px;color:#9ca3af;text-align:center;">
+                You're receiving this because your account is linked to student(s) on KIP.
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
+                <a href="https://mastri.app/settings?unsubscribe=${encodeURIComponent(parentEmail)}" style="color:#6b7280;">Unsubscribe from daily digest</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Hello ${parentName},\n\n${summaryText}\n\n${students.map(s => `${s.studentName}: ${s.triggeredAlerts.length} alert(s), ${s.stats.reviewsDue} reviews due`).join('\n')}\n\nVisit https://mastri.app/parent-monitor\n\nUnsubscribe: https://mastri.app/settings?unsubscribe=${encodeURIComponent(parentEmail)}`;
+
+  return sendEmail(parentEmail, `KIP Daily Digest — ${new Date().toLocaleDateString()}`, html, text);
+}
+
+// Helper: escape HTML entities
+function escapeHtml(text: string): string {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Helper: format relative time
+function formatTimeAgo(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days} day(s) ago`;
+  if (hours > 0) return `${hours} hour(s) ago`;
+  return 'Just now';
+}

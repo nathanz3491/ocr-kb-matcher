@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import axios from 'axios';
 import { GraphData, GraphNode } from '@/types/graph';
+import { renderMarkdown } from '@/lib/utils';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import Link from 'next/link';
 import { Layers, FileText, BookOpen, HelpCircle, X, Sparkles } from 'lucide-react';
@@ -188,7 +189,7 @@ export function GlobalKnowledgeGraph({ highlightJobId, showStatistics = true }: 
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{selectedNode.data?.description}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2" dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedNode.data?.description || '') }} />
             <div className="text-xs text-slate-500 dark:text-slate-400">
               <span className="inline-block px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded">{selectedNode.type}</span>
               {selectedNode.data?.category && (

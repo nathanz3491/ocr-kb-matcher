@@ -243,9 +243,11 @@ export async function getCodeStatus(
 
 /**
  * Read a student's dashboard data files (for parent monitoring view).
+ * knowledgeGraph nodes/edges are stored as dicts (id->node) in the JSON file.
+ * We convert them to arrays so the frontend can use .length on them.
  */
 export async function getStudentDashboardData(studentId: string): Promise<{
-  knowledgeGraph: Record<string, unknown> | null;
+  knowledgeGraph: { nodes: unknown[]; edges: unknown[] } | null;
   userProgress: Record<string, unknown> | null;
   reviews: Record<string, unknown> | null;
   quizResults: Record<string, unknown> | null;
@@ -261,8 +263,16 @@ export async function getStudentDashboardData(studentId: string): Promise<{
     }
   }
 
+  const kg = await readDataFile('knowledge-graph');
+  const knowledgeGraph = kg
+    ? {
+        nodes: Object.values(kg.nodes || {}),
+        edges: Object.values(kg.edges || {}),
+      }
+    : null;
+
   return {
-    knowledgeGraph: await readDataFile('knowledge-graph'),
+    knowledgeGraph,
     userProgress: await readDataFile('user-progress'),
     reviews: await readDataFile('reviews'),
     quizResults: await readDataFile('quiz-results'),

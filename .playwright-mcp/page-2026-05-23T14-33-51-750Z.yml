@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - button "Back" [ref=e49]:
+        - img [ref=e50]
+        - text: Back
+      - heading "Complete Registration" [level=1] [ref=e52]
+      - paragraph [ref=e7]: Parent account — monitor progress
+    - generic [ref=e53]:
+      - img [ref=e54]
+      - text: Parent Account
+    - generic [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]: Full Name
+        - generic [ref=e62]:
+          - img [ref=e63]
+          - textbox "Full Name" [ref=e66]:
+            - /placeholder: Your full name
+      - generic [ref=e67]:
+        - generic [ref=e68]: Email
+        - generic [ref=e69]:
+          - img [ref=e70]
+          - textbox "Email" [ref=e73]:
+            - /placeholder: you@example.com
+      - generic [ref=e74]:
+        - generic [ref=e75]: Password
+        - generic [ref=e76]:
+          - img [ref=e77]
+          - textbox "Password" [ref=e80]:
+            - /placeholder: At least 8 characters
+      - button "Create Account" [ref=e81]:
+        - generic [ref=e82]: Create Account
+    - paragraph [ref=e84]:
+      - text: Already have an account?
+      - link "Sign in" [ref=e85] [cursor=pointer]:
+        - /url: /auth/login

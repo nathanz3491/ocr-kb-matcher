@@ -26,6 +26,9 @@ import studyPlannerRouter from './studyPlanner';
 import authRoutes from './auth';
 import userSettingsRoutes from './userSettings';
 import parentMonitorRoutes from './parentMonitor';
+import teacherMonitorRoutes from './teacherMonitor';
+import teacherGamesRoutes from './teacherGames';
+import teacherLinksRoutes from './teacherLinks';
 
 const router = Router();
 
@@ -59,6 +62,9 @@ router.use('/api/study-plan', studyPlannerRouter);
 router.use('/api/auth', authRoutes);
 router.use('/api/user', userSettingsRoutes);
 router.use('/api/parent-monitor', parentMonitorRoutes);
+router.use('/api/teacher-monitor', teacherMonitorRoutes);
+router.use('/api/teacher/games', teacherGamesRoutes);
+router.use('/api/teacher', teacherLinksRoutes);
 
 /**
  * @route   GET /health

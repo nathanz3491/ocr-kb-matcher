@@ -1,0 +1,11 @@
+const s = require('./dist/backend/src/services/parentAlertService');
+console.log('Exports:', Object.keys(s));
+console.log('checkQuizAvoidance:', typeof s.checkQuizAvoidance);
+console.log('checkInactivity:', typeof s.checkInactivity);
+console.log('checkOverdueReviews:', typeof s.checkOverdueReviews);
+console.log('checkOffTopicUpload:', typeof s.checkOffTopicUpload);
+console.log('getAlerts:', typeof s.getAlerts);
+console.log('createAlert:', typeof s.createAlert);
+console.log('resolveAlert:', typeof s.resolveAlert);
+console.log('markAlertRead:', typeof s.markAlertRead);
+console.log('dismissAlert:', typeof s.dismissAlert);

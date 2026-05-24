@@ -29,7 +29,7 @@ import { findMatches } from './ai';
 import { parseQuestions } from './questionParser';
 import { batchMatchQuestions } from './batchMatching';
 import { generateGraphFromText } from './graphGeneration';
-import { KnowledgeGraphStorage, getKnowledgeGraphStorage } from './knowledgeGraphStorage';
+import { KnowledgeGraphStorage, getKnowledgeGraphStorage, saveStandaloneJobGraph } from './knowledgeGraphStorage';
 import { exportTreeForLLM, getFullKnowledgeTree } from './knowledgeTreeService';
 import { matchOCRToKnowledgeTree } from './aiKnowledgeMatching';
 import { userProgressService } from './userProgressService';
@@ -37,6 +37,61 @@ import { generateFlashcards } from './flashcardService';
 import { generateCheatSheet, generateStudyNotes } from './studyMaterialService';
 import { extractFromFile } from './textExtractor';
 import { extractWrongQuestions, generateExplanation, generatePracticeQuestions, getKBContext } from './wrongQuestionService';
+
+/**
+ * Off-topic job entry for parent alert tracking.
+ * Appended per-student to backend/data/off-topic-jobs-{studentId}.json
+ */
+interface OffTopicEntry {
+  jobId: string;
+  studentId: string;
+  timestamp: string;
+  confidence: number;
+}
+
+/**
+ * Track an off-topic job by appending to a per-student JSON file.
+ * Keeps only the latest 20 entries. Uses atomic write (temp + rename).
+ */
+async function trackOffTopicJob(jobId: string, studentId: string, confidence: number): Promise<void> {
+  const DATA_DIR = path.join(process.cwd(), 'data');
+  const offTopicFile = path.join(DATA_DIR, `off-topic-jobs-${studentId}.json`);
+  const MAX_ENTRIES = 20;
+
+  try {
+    // Read existing entries
+    let entries: OffTopicEntry[] = [];
+    try {
+      const raw = await fs.readFile(offTopicFile, 'utf-8');
+      entries = JSON.parse(raw);
+      if (!Array.isArray(entries)) entries = [];
+    } catch {
+      // File doesn't exist or is invalid — start fresh
+    }
+
+    // Append new entry
+    entries.push({
+      jobId,
+      studentId,
+      timestamp: new Date().toISOString(),
+      confidence,
+    });
+
+    // Keep only latest MAX_ENTRIES
+    if (entries.length > MAX_ENTRIES) {
+      entries = entries.slice(-MAX_ENTRIES);
+    }
+
+    // Atomic write: temp file + rename
+    const tempPath = `${offTopicFile}.tmp`;
+    await fs.writeFile(tempPath, JSON.stringify(entries, null, 2), 'utf-8');
+    await fs.rename(tempPath, offTopicFile);
+
+    console.log(`[JobProcessor] Tracked off-topic job ${jobId} for student ${studentId} (confidence: ${confidence})`);
+  } catch (error) {
+    console.error(`[JobProcessor] Failed to track off-topic job ${jobId}:`, error);
+  }
+}
 
 /**
  * Job Processor class
@@ -205,9 +260,26 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
         });
       }
 
+      // Off-topic detection across all wrong questions
+      const wrongSingleAllNodes = wrongResults.flatMap(r => r.matchedNodes || []);
+      const wrongSingleAvgConfidence = wrongSingleAllNodes.length > 0
+        ? wrongSingleAllNodes.reduce((sum, m) => sum + (m.confidence || 0), 0) / wrongSingleAllNodes.length
+        : 0;
+      const wrongSingleOffTopic = wrongSingleAllNodes.length === 0 || wrongSingleAvgConfidence < 0.3;
+      const wrongSingleMatchConfidence = Math.round(wrongSingleAvgConfidence * 100) / 100;
+      console.log(`[JobProcessor] Off-topic detection (WRONG_SINGLE): offTopic=${wrongSingleOffTopic}, avgConfidence=${wrongSingleMatchConfidence}`);
+
       // Step 5: Save results (skip graph/material generation for wrong question jobs)
       context.currentStep = ProcessingStep.SAVE_RESULTS;
-      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { wrongResults });
+      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, {
+        wrongResults,
+        offTopic: wrongSingleOffTopic,
+        matchConfidence: wrongSingleMatchConfidence,
+      });
+
+      if (wrongSingleOffTopic) {
+        await trackOffTopicJob(job.id, context.job.userId || 'anonymous', wrongSingleMatchConfidence);
+      }
 
       // Step 6: Mark as completed
       context.currentStep = ProcessingStep.COMPLETE;
@@ -258,8 +330,26 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
         });
       }
 
+      // Off-topic detection across all wrong questions
+      const wrongMultipleAllNodes = wrongResults.flatMap(r => r.matchedNodes || []);
+      const wrongMultipleAvgConfidence = wrongMultipleAllNodes.length > 0
+        ? wrongMultipleAllNodes.reduce((sum, m) => sum + (m.confidence || 0), 0) / wrongMultipleAllNodes.length
+        : 0;
+      const wrongMultipleOffTopic = wrongMultipleAllNodes.length === 0 || wrongMultipleAvgConfidence < 0.3;
+      const wrongMultipleMatchConfidence = Math.round(wrongMultipleAvgConfidence * 100) / 100;
+      console.log(`[JobProcessor] Off-topic detection (WRONG_MULTIPLE): offTopic=${wrongMultipleOffTopic}, avgConfidence=${wrongMultipleMatchConfidence}`);
+
       context.currentStep = ProcessingStep.SAVE_RESULTS;
-      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.SAVE_RESULTS, wrongResults });
+      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, {
+        currentStep: ProcessingStep.SAVE_RESULTS,
+        wrongResults,
+        offTopic: wrongMultipleOffTopic,
+        matchConfidence: wrongMultipleMatchConfidence,
+      });
+
+      if (wrongMultipleOffTopic) {
+        await trackOffTopicJob(job.id, context.job.userId || 'anonymous', wrongMultipleMatchConfidence);
+      }
 
       context.currentStep = ProcessingStep.COMPLETE;
       await updateJobStatus(job.id, ProcessingStatus.COMPLETED);
@@ -284,8 +374,26 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
       const questionResults = await batchMatchQuestions(parsedQuestions, knowledgeTreeContext);
       console.log(`[JobProcessor] Batch matched ${questionResults.length} questions`);
 
+      // Off-topic detection across all batch-matched questions
+      const multipleAllNodes = questionResults.flatMap(r => r.matchedNodes || []);
+      const multipleAvgConfidence = multipleAllNodes.length > 0
+        ? multipleAllNodes.reduce((sum, m) => sum + (m.confidence || 0), 0) / multipleAllNodes.length
+        : 0;
+      const multipleOffTopic = multipleAllNodes.length === 0 || multipleAvgConfidence < 0.3;
+      const multipleMatchConfidence = Math.round(multipleAvgConfidence * 100) / 100;
+      console.log(`[JobProcessor] Off-topic detection (MULTIPLE): offTopic=${multipleOffTopic}, avgConfidence=${multipleMatchConfidence}`);
+
       // Save question results to job
-      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { questionResults, currentStep: ProcessingStep.BATCH_MATCH });
+      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, {
+        questionResults,
+        offTopic: multipleOffTopic,
+        matchConfidence: multipleMatchConfidence,
+        currentStep: ProcessingStep.BATCH_MATCH,
+      });
+
+      if (multipleOffTopic) {
+        await trackOffTopicJob(job.id, context.job.userId || 'anonymous', multipleMatchConfidence);
+      }
 
       // Collect ALL unique matched node IDs
       const allMatchedNodeIds = [...new Set(
@@ -341,6 +449,23 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
       console.log(`[JobProcessor] AI matched ${matchResult.matchedNodes.length} nodes:`,
         matchResult.matchedNodes.map(m => `${m.nodeId}(${m.confidence})`).join(', '));
 
+      // Off-topic detection: no matches or all confidence below threshold
+      const singleAvgConfidence = matchResult.matchedNodes.length > 0
+        ? matchResult.matchedNodes.reduce((sum, m) => sum + m.confidence, 0) / matchResult.matchedNodes.length
+        : 0;
+      const singleOffTopic = matchResult.matchedNodes.length === 0 || singleAvgConfidence < 0.3;
+      const singleMatchConfidence = Math.round(singleAvgConfidence * 100) / 100;
+      console.log(`[JobProcessor] Off-topic detection (SINGLE): offTopic=${singleOffTopic}, avgConfidence=${singleMatchConfidence}`);
+
+      await updateJobStatus(job.id, ProcessingStatus.PROCESSING, {
+        offTopic: singleOffTopic,
+        matchConfidence: singleMatchConfidence,
+      });
+
+      if (singleOffTopic) {
+        await trackOffTopicJob(job.id, context.job.userId || 'anonymous', singleMatchConfidence);
+      }
+
       // 3. Update user progress - mark matched nodes with initial mastery based on question difficulty
       const matchedNodeIds = matchResult.matchedNodes.map(m => m.nodeId);
       if (matchedNodeIds.length > 0) {
@@ -355,14 +480,12 @@ export class JobProcessor extends EventEmitter implements IJobProcessor {
       await this.updateJobWithKnowledgeMatch(job.id, matchResult);
     }
 
-    // Step 6: Generate graph (BOTH paths)
+    // Step 6: Generate standalone graph (stored separately from main knowledge graph)
     context.currentStep = ProcessingStep.GENERATE_GRAPH;
     await updateJobStatus(job.id, ProcessingStatus.PROCESSING, { currentStep: ProcessingStep.GENERATE_GRAPH });
     const graphData = await generateGraphFromText(ocrResult.text);
-    const storage = getKnowledgeGraphStorage(context.job.userId ?? '');
-    await storage.initialize();
-    const mergeResult = await storage.mergeJobGraph(job.id, graphData);
-    console.log(`[JobProcessor] Knowledge graph updated: +${mergeResult.nodesAdded} nodes, +${mergeResult.edgesAdded} edges`);
+    await saveStandaloneJobGraph(job.id, graphData);
+    console.log(`[JobProcessor] Standalone job graph saved: ${graphData.nodes.length} nodes, ${graphData.edges.length} edges`);
 
     // Step 7: Save final results
     context.currentStep = ProcessingStep.SAVE_RESULTS;

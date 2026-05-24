@@ -1,0 +1,137 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e87]:
+    - button "Toggle navigation menu" [ref=e88] [cursor=pointer]:
+      - generic [ref=e89]:
+        - img [ref=e90]
+        - img [ref=e91]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - img
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - img
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic:
+                - generic: ⌘K
+          - button "Switch to dark mode":
+            - generic:
+              - img
+              - img
+          - generic:
+            - button "T Test Teacher":
+              - generic: T
+              - generic: Test Teacher
+              - img
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Test Teacher
+                  - generic: test_teacher_abc123@gmail.com
+                - generic:
+                  - link "Settings":
+                    - /url: /settings
+                    - generic:
+                      - img
+                    - generic: Settings
+                  - button "Sign Out":
+                    - generic:
+                      - img
+                    - generic: Sign Out
+        - generic:
+          - link "Home Dashboard & quick actions":
+            - /url: /
+            - generic:
+              - img
+            - generic:
+              - generic: Home
+              - generic: Dashboard & quick actions
+            - img
+          - link "Import Content Build your knowledge base":
+            - /url: /import
+            - generic:
+              - img
+            - generic:
+              - generic: Import Content
+              - generic: Build your knowledge base
+            - img
+          - link "Learn Study with quizzes":
+            - /url: /learn
+            - generic:
+              - img
+            - generic:
+              - generic: Learn
+              - generic: Study with quizzes
+            - img
+          - link "Flashcards Spaced repetition cards":
+            - /url: /flashcards
+            - generic:
+              - img
+            - generic:
+              - generic: Flashcards
+              - generic: Spaced repetition cards
+            - img
+          - link "AI Assistant Chat with your knowledge":
+            - /url: /chat
+            - generic:
+              - img
+            - generic:
+              - generic: AI Assistant
+              - generic: Chat with your knowledge
+            - img
+          - link "Review Review sessions":
+            - /url: /review
+            - generic:
+              - img
+            - generic:
+              - generic: Review
+              - generic: Review sessions
+            - img
+          - link "Dashboard Analytics, progress & certificates":
+            - /url: /dashboard
+            - generic:
+              - img
+            - generic:
+              - generic: Dashboard
+              - generic: Analytics, progress & certificates
+            - img
+          - link "Knowledge Graph Visualize connections":
+            - /url: /knowledge-graph
+            - generic:
+              - img
+            - generic:
+              - generic: Knowledge Graph
+              - generic: Visualize connections
+            - img
+        - generic:
+          - generic:
+            - link "Documentation":
+              - /url: /docs
+              - img
+              - text: Documentation
+            - link "Help & Support":
+              - /url: /help
+              - img
+              - text: Help & Support
+          - generic:
+            - generic: ONLINE
+    - main [ref=e94]:
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - heading "Teacher Dashboard" [level=1] [ref=e97]
+          - paragraph [ref=e98]: Manage your students and host interactive quiz games
+        - button "Host Game" [ref=e99]:
+          - img [ref=e100]
+          - text: Host Game
+      - generic [ref=e102]:
+        - img [ref=e103]
+        - heading "No Students Linked Yet" [level=2] [ref=e108]
+        - paragraph [ref=e109]: Ask your students to generate a teacher linking code from their dashboard and enter it to link their account.
+        - button "View Game History" [ref=e110]

@@ -694,6 +694,71 @@ export function resetStorageInstance(): void {
   storageCache.clear();
 }
 
+// ============================================================
+// STANDALONE JOB GRAPHS
+// Job graphs are stored separately from the main knowledge graph.
+// They do NOT appear in the main graph — only retrievable by jobId.
+// ============================================================
+
+const JOB_GRAPHS_DIR = path.join(DATA_DIR, 'job-graphs');
+
+/**
+ * Get the file path for a job's standalone graph
+ */
+function getJobGraphFile(jobId: string): string {
+  return path.join(JOB_GRAPHS_DIR, `${jobId}.json`);
+}
+
+/**
+ * Save a job's graph as a standalone file (does NOT merge into main graph).
+ * This ensures job-generated nodes/edges only appear in the job's own view,
+ * not in the user's main knowledge graph.
+ */
+export async function saveStandaloneJobGraph(jobId: string, jobGraph: GraphData): Promise<void> {
+  await fs.mkdir(JOB_GRAPHS_DIR, { recursive: true });
+  const filePath = getJobGraphFile(jobId);
+  const data = {
+    jobId,
+    savedAt: new Date().toISOString(),
+    nodes: jobGraph.nodes,
+    edges: jobGraph.edges,
+  };
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  console.log(`[KnowledgeGraphStorage] Saved standalone job graph for job ${jobId}: ${jobGraph.nodes.length} nodes, ${jobGraph.edges.length} edges`);
+}
+
+/**
+ * Load a standalone job graph by jobId.
+ * Returns null if the job graph doesn't exist.
+ */
+export async function getStandaloneJobGraph(jobId: string): Promise<GraphData | null> {
+  const filePath = getJobGraphFile(jobId);
+  try {
+    const data = await fs.readFile(filePath, 'utf-8');
+    const parsed = JSON.parse(data) as { nodes: GraphNode[]; edges: GraphEdge[] };
+    return { nodes: parsed.nodes, edges: parsed.edges };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Delete a standalone job graph.
+ */
+export async function deleteStandaloneJobGraph(jobId: string): Promise<void> {
+  const filePath = getJobGraphFile(jobId);
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 /**
  * Copies the default knowledge graph to a new user's personal graph file.
  * Reads knowledge-graph-default.json, deep-copies nodes/edges/statistics (stripping jobContributions),

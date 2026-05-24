@@ -1,0 +1,32 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - heading "Create Your Account" [level=1] [ref=e13]
+      - paragraph [ref=e14]: Choose your account type to get started
+    - generic [ref=e15]:
+      - button "Student Upload documents, build knowledge graphs, take quizzes" [ref=e16]:
+        - generic [ref=e17]:
+          - img [ref=e19]
+          - generic [ref=e22]:
+            - generic [ref=e23]: Student
+            - generic [ref=e24]: Upload documents, build knowledge graphs, take quizzes
+          - img [ref=e25]
+      - button "Teacher Create quizzes, manage classes, monitor student progress" [ref=e27]:
+        - generic [ref=e28]:
+          - img [ref=e30]
+          - generic [ref=e35]:
+            - generic [ref=e36]: Teacher
+            - generic [ref=e37]: Create quizzes, manage classes, monitor student progress
+          - img [ref=e38]
+      - button "Parent Monitor your child's study progress and performance" [ref=e40]:
+        - generic [ref=e41]:
+          - img [ref=e43]
+          - generic [ref=e48]:
+            - generic [ref=e49]: Parent
+            - generic [ref=e50]: Monitor your child's study progress and performance
+          - img [ref=e51]
+      - paragraph [ref=e54]:
+        - text: Already have an account?
+        - link "Sign in" [ref=e55] [cursor=pointer]:
+          - /url: /auth/login

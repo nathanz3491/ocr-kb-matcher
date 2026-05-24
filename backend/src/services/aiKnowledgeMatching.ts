@@ -142,7 +142,7 @@ async function validateAndFixResponse(
       temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: 'You are a mathematics education expert. Fix the invalid node IDs.' },
+        { role: 'system', content: 'You are a general education expert. Fix the invalid node IDs. IMPORTANT: All text fields — especially "reasoning" — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks, and |highlighted text| (wrap key terms, concepts, and important phrases in pipe characters to highlight them visually — these will be rendered as a yellow highlighter effect in the UI). This content will be rendered as markdown in the UI.' },
         { role: 'user', content: retryPrompt }
       ]
     });
@@ -195,7 +195,7 @@ async function analyzeDifficulty(ocrText: string): Promise<number> {
       temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: 'You are a mathematics education expert. Analyze question difficulty.' },
+        { role: 'system', content: 'You are a general education expert. Analyze question difficulty.' },
         { role: 'user', content: prompt }
       ]
     });
@@ -256,7 +256,7 @@ export async function matchOCRToKnowledgeTree(
     temperature: 0.3,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: 'You are a mathematics education expert.' },
+      { role: 'system', content: 'You are a general education expert. IMPORTANT: All text fields — especially "reasoning" — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks, and |highlighted text| (wrap key terms, concepts, and important phrases in pipe characters to highlight them visually — these will be rendered as a yellow highlighter effect in the UI). This content will be rendered as markdown in the UI.' },
       { role: 'user', content: prompt }
     ]
   });

@@ -59,6 +59,28 @@ export async function generateExplanation(
   questionText: string,
   kbContext: string
 ): Promise<string> {
+  const model = 'kimi-k2.5';
+  const callKimi = async (prompt: string): Promise<string> => {
+    const apiKey = process.env.MOONSHOT_API_KEY || process.env.AI_API_KEY;
+    if (!apiKey) throw new Error('MOONSHOT_API_KEY not set');
+    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: 'You are a general education expert. Always respond with valid JSON. IMPORTANT: All text fields — especially "explanation" and all question fields — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks, and |highlighted text| (wrap key terms, concepts, and important phrases in pipe characters to highlight them visually — these will be rendered as a yellow highlighter effect in the UI). This content will be rendered as markdown in the UI.' },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
+    });
+    if (!response.ok) throw new Error(`AI API error: ${response.status}`);
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content || '';
+  };
+
   const prompt = `The following question was answered incorrectly:
 
 ${questionText}
@@ -76,7 +98,7 @@ Return a JSON object with this exact structure (no markdown):
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await callMiniMaxAI(prompt);
+      const response = await callKimi(prompt);
       const parsed = JSON.parse(response);
       return parsed.explanation;
     } catch (error) {
@@ -196,9 +218,9 @@ async function callMiniMaxAI(prompt: string): Promise<string> {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.MOONSHOT_MODEL || 'moonshot-v1-8k',
+      model: process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview',
       messages: [
-        { role: 'system', content: 'You are an expert educational AI assistant. Always respond with valid JSON only, no markdown formatting or additional text.' },
+        { role: 'system', content: 'You are an expert educational AI assistant. Always respond with valid JSON. IMPORTANT: All text fields — especially "explanation" and all question fields — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks. This content will be rendered as markdown in the UI.' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,

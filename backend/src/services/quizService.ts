@@ -18,10 +18,10 @@ async function callQuizAI(prompt: string): Promise<string> {
   });
 
   const completion = await client.chat.completions.create({
-    model: process.env.MOONSHOT_MODEL || 'moonshot-v1-8k',
+    model: process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview',
     max_tokens: 4096,
     messages: [
-      { role: 'system', content: 'You are an educational quiz generator. Always respond with valid JSON only, no markdown formatting or additional text.' },
+      { role: 'system', content: 'You are an educational quiz generator. Always respond with valid JSON only. IMPORTANT: All text fields — especially "explanation" — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks, and |highlighted text| (wrap key terms, concepts, and important phrases in pipe characters to highlight them visually — these will be rendered as a yellow highlighter effect in the UI). This content will be rendered as markdown in the UI.' },
       { role: 'user', content: prompt }
     ],
     temperature: 0.7,

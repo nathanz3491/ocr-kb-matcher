@@ -15,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { GraphData, GraphNode, GraphEdge } from '@/types/graph';
 import { useTheme } from '@/components/theme/ThemeProvider';
+import { renderMarkdown } from '@/lib/utils';
 
 // Node colors by type
 const nodeColors = {
@@ -106,7 +107,7 @@ export function ReactFlowGraph({ graphData }: ReactFlowGraphProps) {
         {selectedNode && (
           <Panel position="top-right" className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-lg m-4 max-w-xs text-slate-800 dark:text-slate-200">
             <h3 className="font-semibold text-lg mb-2">{selectedNode.data.label}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{selectedNode.data.description}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2" dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedNode.data.description || '') }} />
             <div className="text-xs text-gray-500 dark:text-gray-400">
               <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded">
                 {selectedNode.type}

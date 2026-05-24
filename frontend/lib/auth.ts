@@ -1,7 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-// Use relative paths so requests go through Next.js proxy in production
-// In dev: relative paths still work (Next.js dev server proxies /api/* → backend)
-// In prod via tunnel: /api/* → Next.js route handler → backend
+import { storage } from './storage';
 
 export interface AuthResponse {
   success: boolean;
@@ -18,13 +15,13 @@ export interface User {
   email: string;
   name: string;
   emailVerified: boolean;
-  accountType?: 'student' | 'parent';
+  accountType?: 'student' | 'parent' | 'teacher';
   parentCode?: string | null;
   parentCodeExpires?: number | null;
 }
 
 export const authApi = {
-  register: async (email: string, password: string, name: string, accountType?: 'student' | 'parent'): Promise<AuthResponse> => {
+  register: async (email: string, password: string, name: string, accountType?: 'student' | 'parent' | 'teacher'): Promise<AuthResponse> => {
     const res = await fetch(`/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,35 +83,114 @@ export const authApi = {
     const token = authApi.getAccessToken();
     if (!token) return { success: false, error: 'No token' };
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const res = await fetch(`/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      return res.json();
-    } catch {
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return { success: false, error: 'Non-JSON response from server' };
+      }
+      try {
+        return await res.json();
+      } catch {
+        return { success: false, error: 'Failed to parse server response' };
+      }
+    } catch (err) {
       clearTimeout(timeout);
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { success: false, error: 'Request timed out' };
+      }
       return { success: false, error: 'Request failed' };
     }
   },
 
   getAccessToken: (): string | null => {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('accessToken');
+    return storage.getItem('accessToken');
   },
 
   setTokens: (accessToken: string, refreshToken: string): void => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    storage.setItem('accessToken', accessToken);
+    storage.setItem('refreshToken', refreshToken);
   },
 
   clearTokens: (): void => {
     if (typeof window === 'undefined') return;
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    storage.removeItem('accessToken');
+    storage.removeItem('refreshToken');
+  },
+};
+
+// Teacher API
+export const teacherApi = {
+  getLinkedStudents: async (): Promise<{
+    success: boolean;
+    data?: Array<{
+      linkId: string;
+      studentId: string;
+      studentName: string;
+      studentEmail: string;
+      linkedAt: string;
+    }>;
+    error?: string;
+  }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/students`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  verifyTeacherCode: async (studentId: string, code: string): Promise<{
+    success: boolean;
+    data?: { link: any };
+    error?: string;
+  }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/verify-student-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ studentId, code }),
+    });
+    return res.json();
+  },
+
+  revokeLink: async (linkId: string): Promise<{ success: boolean; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/link/${linkId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  getStudentOverview: async (studentId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher-monitor/student/${studentId}/overview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  getTeacherGameHistory: async (): Promise<{ success: boolean; data?: any[]; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/games/history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  getTeacherGameResults: async (gameId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/games/${gameId}/results`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
   },
 };
 
@@ -216,6 +292,35 @@ export const parentMonitorApi = {
   unlinkParent: async (linkId: string): Promise<{ success: boolean; error?: string }> => {
     const token = authApi.getAccessToken();
     const res = await fetch(`/api/auth/my-parent-links/${linkId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.json();
+  },
+};
+
+// Teacher Link API
+export const teacherLinkApi = {
+  generateTeacherCode: async (): Promise<{ success: boolean; data?: { code: string; expiresAt: number }; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/students/generate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  getMyTeacherLinks: async (): Promise<{ success: boolean; data?: Array<{ linkId: string; teacherId: string; teacherName: string; teacherEmail: string; linkedAt: string }>; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/my-teacher-links`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  unlinkTeacher: async (linkId: string): Promise<{ success: boolean; error?: string }> => {
+    const token = authApi.getAccessToken();
+    const res = await fetch(`/api/teacher/link/${linkId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
     });

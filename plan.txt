@@ -1,0 +1,20 @@
+Short term: 1-2 wks:
+- Build parent alert system: when students NOT ON TASK, alert parent.
+- Switch to minimax as ai model provider
+- private domain and establish as a formal website.
+Cost: 250 rmb.
+
+Middle term: 2-4wks:
+- Enhance stability and loading times.
+- Enhance the content of the knowledge graph for accuracy.
+- Promote app to history teacher after comp exams.
+- Build games similar to blooklet and kahoot.
+Cost: 300rmb.
+
+Long term: 4-8wks:
+- Integration with lliu.fun
+- Billing system
+- Formal email verification
+- Cloudfare anti-bot
+- More functions.
+Cost: Unknown, but prob greater than 1000rmb in total.

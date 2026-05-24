@@ -1,0 +1,11 @@
+const fs = require('fs');
+const ocrPath = '/home/nathan/ocr-kb-matcher/backend/dist/backend/src/services/ocr.js';
+const c = fs.readFileSync(ocrPath, 'utf8');
+const lines = c.split('\n');
+console.log('Total lines:', lines.length);
+console.log('Total chars:', c.length);
+for (let i = 0; i < 30; i++) console.log((i + 1) + ': ' + lines[i]);
+console.log('---');
+const vi = lines.findIndex(l => l.includes('validateImage'));
+console.log('First validateImage mention at line:', vi + 1);
+for (let i = vi; i < vi + 20 && i < lines.length; i++) console.log((i + 1) + ': ' + lines[i]);

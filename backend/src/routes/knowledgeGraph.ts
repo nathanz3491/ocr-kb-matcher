@@ -4,7 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getKnowledgeGraphStorage } from '../services/knowledgeGraphStorage';
+import { getKnowledgeGraphStorage, getStandaloneJobGraph, deleteStandaloneJobGraph } from '../services/knowledgeGraphStorage';
 
 const router = Router();
 
@@ -44,27 +44,19 @@ router.get('/statistics', async (req: Request, res: Response) => {
 
 /**
  * GET /api/knowledge-graph/jobs/:jobId
- * Get a specific job's contribution to the knowledge graph
+ * Get a specific job's standalone graph
  */
 router.get('/jobs/:jobId', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    const storage = getKnowledgeGraphStorage(userId);
-    await storage.initialize();
-    const contribution = await storage.getJobContribution(req.params.jobId);
-    
-    if (!contribution) {
-      res.status(404).json({
-        success: false,
-        error: 'Job contribution not found',
-      });
+    const graph = await getStandaloneJobGraph(req.params.jobId);
+    if (!graph) {
+      res.status(404).json({ success: false, error: 'Job graph not found' });
       return;
     }
-    
-    res.json({ success: true, data: contribution });
+    res.json({ success: true, data: graph });
   } catch (error) {
-    console.error('Error loading job contribution:', error);
-    res.status(500).json({ success: false, error: 'Failed to load job contribution' });
+    console.error('Error loading job graph:', error);
+    res.status(500).json({ success: false, error: 'Failed to load job graph' });
   }
 });
 
@@ -118,18 +110,15 @@ router.get('/search', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/knowledge-graph/jobs/:jobId
- * Remove a job's contribution from the knowledge graph
+ * Delete a standalone job graph
  */
 router.delete('/jobs/:jobId', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    const storage = getKnowledgeGraphStorage(userId);
-    await storage.initialize();
-    await storage.removeJobContribution(req.params.jobId);
-    res.json({ success: true, data: { message: 'Job contribution removed successfully' } });
+    await deleteStandaloneJobGraph(req.params.jobId);
+    res.json({ success: true, data: { message: 'Job graph deleted successfully' } });
   } catch (error) {
-    console.error('Error removing job contribution:', error);
-    res.status(500).json({ success: false, error: 'Failed to remove job contribution' });
+    console.error('Error deleting job graph:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete job graph' });
   }
 });
 

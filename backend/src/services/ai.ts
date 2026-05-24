@@ -49,7 +49,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 export function getMoonshotConfig(): MoonshotConfig {
   const apiKey = process.env.MOONSHOT_API_KEY;
   const baseURL = process.env.MOONSHOT_BASE_URL || 'https://api.moonshot.cn/v1';
-  const model = process.env.MOONSHOT_MODEL || 'moonshot-v1-8k';
+  const model = process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
 
   if (!apiKey) {
     throw createAIError(

@@ -2,7 +2,7 @@
  * Authentication types for JWT-based user auth system
  */
 
-export type AccountType = 'student' | 'parent';
+export type AccountType = 'student' | 'parent' | 'teacher';
 
 export interface User {
   id: string;
@@ -15,6 +15,8 @@ export interface User {
   emailVerificationExpires?: number;
   parentCode?: string | null;
   parentCodeExpires?: number | null;
+  teacherCode?: string | null;
+  teacherCodeExpires?: number | null;
   createdAt: string;
   updatedAt: string;
   settings: UserSettings;

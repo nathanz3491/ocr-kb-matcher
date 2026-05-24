@@ -63,7 +63,7 @@ export async function parseQuestions(text: string): Promise<ParsedQuestion[]> {
   const prompt = QUESTION_PARSING_PROMPT.replace('{{ocrText}}', text);
 
   const completion = await client.chat.completions.create({
-    model: config.model,
+    model: 'moonshot-v1-32k',
     max_tokens: 4096,
     temperature: 0.3,
     response_format: { type: 'json_object' },

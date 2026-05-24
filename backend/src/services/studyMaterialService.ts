@@ -33,12 +33,12 @@ async function generateWithAI(prompt: string): Promise<string> {
   });
 
   const completion = await client.chat.completions.create({
-    model: process.env.MOONSHOT_MODEL || 'moonshot-v1-8k',
+    model: process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview',
     max_tokens: 4096,
     temperature: 0.7,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: 'You are an educational content generator. Always respond with valid JSON.' },
+      { role: 'system', content: 'You are an educational content generator. Always respond with valid JSON. IMPORTANT: All text fields — "keyPoints", "formulas", "examples", "summary", "notes" — must use strict markdown formatting: **bold**, *italic*, `code`, line breaks, and |highlighted text| (wrap key terms, concepts, and important phrases in pipe characters to highlight them visually — these will be rendered as a yellow highlighter effect in the UI). This content will be rendered as markdown in the UI.' },
       { role: 'user', content: prompt }
     ],
   });

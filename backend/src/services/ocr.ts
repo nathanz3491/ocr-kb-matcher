@@ -88,7 +88,13 @@ export async function validateImage(imagePath: string): Promise<ImageValidationR
     const isTIFF = signature.startsWith('49492a00') || signature.startsWith('4d4d002a');
 
     if (!isJPEG && !isPNG && !isGIF && !isBMP && !isWebP && !isTIFF) {
-      return { valid: false, error: 'Invalid image format' };
+      // Fallback: check by extension if magic bytes fail (handles server edge cases)
+      const ext = path.extname(imagePath).toLowerCase();
+      const knownExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'];
+      if (!knownExtensions.includes(ext)) {
+        return { valid: false, error: 'Invalid image format' };
+      }
+      console.log(`[validateImage] Magic bytes mismatch but extension "${ext}" is known — accepting by extension fallback`);
     }
 
     // Get dimensions using ImageMagick if available

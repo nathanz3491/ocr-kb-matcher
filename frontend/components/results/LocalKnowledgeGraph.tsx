@@ -17,12 +17,10 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toPng } from 'html-to-image';
-import axios from 'axios';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import Link from 'next/link';
 import { Layers, FileText, BookOpen, HelpCircle, X, Sparkles } from 'lucide-react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { api } from '@/lib/api';
 
 const NODE_COLORS = {
   known: '#10b981',
@@ -343,12 +341,12 @@ export const LocalKnowledgeGraph = forwardRef<LocalKnowledgeGraphRef, LocalKnowl
     
     const fetchGraph = async () => {
       try {
-        console.log('[LocalKnowledgeGraph] Fetching from:', API_BASE_URL);
-        const res = await axios.get(`${API_BASE_URL}/api/local-graph`);
+        const res = await api.get('/api/local-graph');
+        const data = await res.json();
         console.log('[LocalKnowledgeGraph] Response status:', res.status);
-        if (!cancelled && res.data.success) {
-          console.log('[LocalKnowledgeGraph] First node x:', res.data.data.nodes[0]?.x, 'y:', res.data.data.nodes[0]?.y);
-          setGraphData(res.data.data);
+        if (!cancelled && data.success) {
+          console.log('[LocalKnowledgeGraph] First node x:', data.data.nodes[0]?.x, 'y:', data.data.nodes[0]?.y);
+          setGraphData(data.data);
           setLoading(false);
           onLoadingChange?.(false);
         }

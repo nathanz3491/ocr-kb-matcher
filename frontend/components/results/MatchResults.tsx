@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, renderMarkdown } from "@/lib/utils";
 import type { MatchResult } from "@/../../shared/types";
 
 /**
@@ -258,7 +258,7 @@ export function MatchResults({
                     <span>AI Reasoning</span>
                   </div>
                   <p className="text-sm leading-relaxed text-foreground">
-                    {match.reasoning}
+                    <span dangerouslySetInnerHTML={{ __html: renderMarkdown(match.reasoning) }} />
                   </p>
                 </div>
 
@@ -266,9 +266,7 @@ export function MatchResults({
                 {kbEntry?.description && (
                   <div className="mt-4 space-y-2">
                     <p className="text-xs text-muted-foreground">Knowledge Base Entry Description</p>
-                    <p className="text-sm text-muted-foreground">
-                      {kbEntry.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: renderMarkdown(kbEntry.description) }} />
                   </div>
                 )}
 

@@ -37,6 +37,9 @@ Thumbs.db
 
 # Misc
 *.tsbuildinfo
+
+# Nested git repos
+frontend/.git/
 next-env.d.ts
 nul
 CON

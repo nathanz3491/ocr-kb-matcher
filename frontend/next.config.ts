@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   httpAgentOptions: { keepAlive: false },
   typescript: { ignoreBuildErrors: true },
-  experimental: { optimizePackageImports: ["lucide-react", "@base-ui/react"] },
   productionBrowserSourceMaps: false,
+  webpack: (config) => {
+    delete config.resolve.alias['lucide-react'];
+    return config;
+  },
 };
 export default nextConfig;

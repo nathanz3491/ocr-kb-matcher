@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR 知识库匹配系统 — AI 教育平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --purple: #a09bf5;
+      --teal: #5edcc4;
+      --amber: #ffd560;
+      --rose: #fda4af;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+    }
+
+    .deck { position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s cubic-bezier(0.32, 0.72, 0, 1);
+      overflow: hidden;
+    }
+    .slide.active { opacity: 1; pointer-events: all; }
+
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .slide-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.35) 0%,
+        rgba(0,0,0,0.55) 50%,
+        rgba(0,0,0,0.78) 100%
+      );
+    }
+
+    .inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: clamp(2rem, 5vw, 5rem);
+    }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 8vw, 7rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      text-align: center;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5.5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      text-align: center;
+    }
+    p {
+      font-family: var(--font-body);
+      font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+      color: rgba(255,255,255,0.6);
+      line-height: 1.7;
+      max-width: 52ch;
+      text-align: center;
+    }
+    .eyebrow {
+      font-family: var(--font-body);
+      font-size: clamp(0.6rem, 1vw, 0.75rem);
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* Gradient text */
+    .grad-purple { background: linear-gradient(135deg, var(--purple), var(--teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-teal { background: linear-gradient(135deg, var(--teal), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-amber { background: linear-gradient(135deg, var(--amber), var(--rose)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      padding: 0.25rem 0.875rem;
+      border-radius: 999px;
+      font-size: clamp(0.55rem, 0.85vw, 0.68rem);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: var(--font-body);
+    }
+    .tag-purple { background: rgba(160,155,245,0.12); color: var(--purple); border: 1px solid rgba(160,155,245,0.25); }
+    .tag-teal { background: rgba(94,220,196,0.1); color: var(--teal); border: 1px solid rgba(94,220,196,0.2); }
+    .tag-amber { background: rgba(255,213,96,0.1); color: var(--amber); border: 1px solid rgba(255,213,96,0.2); }
+    .tag-rose { background: rgba(253,164,175,0.1); color: var(--rose); border: 1px solid rgba(253,164,175,0.2); }
+
+    /* Layout */
+    .center-col { display: flex; flex-direction: column; align-items: center; gap: clamp(0.8rem, 2vh, 1.75rem); }
+    .divider { width: 48px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); margin: 0 auto; }
+
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(0.6rem, 1.3vw, 1rem); width: 100%; max-width: 860px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.6rem, 1.3vw, 1rem); width: 100%; max-width: 960px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(0.6rem, 1.3vw, 1rem); width: 100%; max-width: 760px; }
+
+    /* Cards */
+    .plan-card {
+      padding: clamp(0.9rem, 1.8vw, 1.4rem);
+      border-radius: 1.25rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .plan-label { font-size: clamp(0.55rem, 0.85vw, 0.68rem); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.6rem; }
+    .plan-items { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+    .plan-items li {
+      font-size: clamp(0.65rem, 1.05vw, 0.8rem);
+      color: rgba(255,255,255,0.5);
+      padding-left: 1rem;
+      position: relative;
+      line-height: 1.55;
+    }
+    .plan-items li::before { content: '—'; position: absolute; left: 0; color: rgba(255,255,255,0.18); }
+    .plan-items li strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+
+    /* Stats */
+    .stat-row { display: flex; gap: clamp(1.5rem, 4vw, 4rem); flex-wrap: wrap; justify-content: center; }
+    .stat-item { text-align: center; }
+    .stat-num { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1; }
+    .stat-label { font-size: clamp(0.55rem, 0.9vw, 0.7rem); color: rgba(255,255,255,0.3); margin-top: 0.25rem; letter-spacing: 0.05em; }
+
+    /* Pipeline */
+    .pipeline { display: flex; align-items: center; gap: clamp(0.3rem, 0.8vw, 0.6rem); flex-wrap: wrap; justify-content: center; }
+    .pipe { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: clamp(0.6rem, 1.2vw, 0.9rem) clamp(0.8rem, 1.5vw, 1.2rem); border-radius: 0.9rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); text-align: center; min-width: 80px; }
+    .pipe-icon { font-size: clamp(1.2rem, 2.2vw, 1.8rem); }
+    .pipe-label { font-family: var(--font-display); font-size: clamp(0.55rem, 0.9vw, 0.7rem); font-weight: 600; color: rgba(255,255,255,0.7); }
+    .pipe-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0; margin: 0 0.1rem; }
+
+    /* Highlight bar */
+    .highlight-bar { width: 100%; max-width: 900px; display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(0.5rem, 1.2vw, 1rem); }
+    .hl-item { padding: clamp(0.7rem, 1.5vw, 1.1rem); border-radius: 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; gap: 0.4rem; text-align: center; }
+    .hl-icon { font-size: clamp(1.3rem, 2.5vw, 2rem); }
+    .hl-title { font-family: var(--font-display); font-size: clamp(0.7rem, 1.2vw, 0.9rem); font-weight: 700; }
+    .hl-desc { font-size: clamp(0.55rem, 0.9vw, 0.68rem); color: rgba(255,255,255,0.4); line-height: 1.5; }
+
+    /* Glass */
+    .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; padding: clamp(0.9rem, 1.8vw, 1.4rem); }
+
+    /* Cover overlay */
+    .cover-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.7) 100%); z-index: 1; }
+
+    /* Animations */
+    @keyframes fade-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .anim-up { animation: fade-up 0.85s cubic-bezier(0.32,0.72,0,1) both; }
+    .anim-in { animation: fade-in 0.7s ease both; }
+    .d1 { animation-delay: 0.1s; }
+    .d2 { animation-delay: 0.2s; }
+    .d3 { animation-delay: 0.3s; }
+    .d4 { animation-delay: 0.45s; }
+    .d5 { animation-delay: 0.55s; }
+    .d6 { animation-delay: 0.65s; }
+
+    /* Navigation */
+    .nav { position: fixed; bottom: clamp(0.8rem, 2.5vh, 1.75rem); left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem; border-radius: 999px; background: rgba(0,0,0,0.55); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+    .nav-btn { width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-family: var(--font-body); transition: all 0.25s; }
+    .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-dots { display: flex; gap: 0.3rem; }
+    .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s; }
+    .nav-dot.active { background: var(--purple); width: 18px; border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .grid-2, .grid-3, .grid-4, .highlight-bar { grid-template-columns: 1fr; }
+      .nav-dots { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: COVER -->
+  <div class="slide active" id="slide-1">
+    <div class="slide-bg" style="background-image:url('slide_bg_knowledge_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <div class="anim-up"><span class="tag tag-purple">AI 教育平台</span></div>
+        <h1 class="anim-up d1">OCR 知识库<br><span class="grad-purple">匹配系统</span></h1>
+        <p class="anim-up d2">AI 将文档转化为知识图谱、测验与学习计划——专为学生打造，家长可实时监督。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: WHAT IT DOES -->
+  <div class="slide" id="slide-2">
+    <div class="slide-bg" style="background-image:url('slide_bg_puzzle_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <span class="eyebrow anim-up">工作原理</span>
+        <h2 class="anim-up d1">从文档到<br><span class="grad-teal">真正掌握</span></h2>
+        <div class="pipeline anim-up d2" style="margin-top:0.5rem;">
+          <div class="pipe"><div class="pipe-icon">📄</div><div class="pipe-label">上传</div></div>
+          <div class="pipe-dot"></div>
+          <div class="pipe"><div class="pipe-icon">🤖</div><div class="pipe-label">AI 处理</div></div>
+          <div class="pipe-dot"></div>
+          <div class="pipe"><div class="pipe-icon">🧠</div><div class="pipe-label">构建图谱</div></div>
+          <div class="pipe-dot"></div>
+          <div class="pipe"><div class="pipe-icon">📝</div><div class="pipe-label">测验</div></div>
+          <div class="pipe-dot"></div>
+          <div class="pipe"><div class="pipe-icon">🔁</div><div class="pipe-label">复习</div></div>
+          <div class="pipe-dot"></div>
+          <div class="pipe"><div class="pipe-icon">👨‍👩‍👧</div><div class="pipe-label">家长视角</div></div>
+        </div>
+        <p class="anim-up d3">上传 PDF、图片或文档，AI 自动提取并结构化内容。学生通过闪卡和自适应测验学习，家长实时查看学习进展。</p>
+        <div class="highlight-bar anim-up d4" style="margin-top:0.5rem;">
+          <div class="hl-item">
+            <div class="hl-icon">📷</div>
+            <div class="hl-title" style="color:var(--purple);">OCR</div>
+            <div class="hl-desc">PDF、图片、文档</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">🔗</div>
+            <div class="hl-title" style="color:var(--teal);">智能匹配</div>
+            <div class="hl-desc">AI 匹配知识图谱</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">🎯</div>
+            <div class="hl-title" style="color:var(--amber);">SM-2</div>
+            <div class="hl-desc">间隔重复算法</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">📊</div>
+            <div class="hl-title" style="color:var(--rose);">数据分析</div>
+            <div class="hl-desc">家长实时看板</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: KEY FEATURES -->
+  <div class="slide" id="slide-3">
+    <div class="slide-bg" style="background-image:url('slide_bg_auth_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <span class="eyebrow anim-up">平台核心功能</span>
+        <h2 class="anim-up d1">为每一个角色<br><span class="grad-teal">精心打造</span></h2>
+        <div class="highlight-bar anim-up d2" style="max-width:900px;margin-top:0.25rem;">
+          <div class="hl-item">
+            <div class="hl-icon">🔐</div>
+            <div class="hl-title" style="color:var(--purple);">身份认证</div>
+            <div class="hl-desc">学生/家长账号、JWT 认证、简单码连接亲子账号</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">👨‍👩‍👧</div>
+            <div class="hl-title" style="color:var(--teal);">家长监控</div>
+            <div class="hl-desc">实时查看孩子图谱、测验成绩和复习进度——非侵入式</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">📤</div>
+            <div class="hl-title" style="color:var(--amber);">错题导入</div>
+            <div class="hl-desc">导入历史错题，AI 自动映射到知识图谱</div>
+          </div>
+          <div class="hl-item">
+            <div class="hl-icon">🧩</div>
+            <div class="hl-title" style="color:var(--rose);">自适应测验</div>
+            <div class="hl-desc">AI 根据图谱生成测验，错题自动进入间隔复习</div>
+          </div>
+        </div>
+        <div class="glass anim-up d3" style="max-width:600px;margin-top:0.25rem;text-align:center;">
+          <p style="font-size:clamp(0.7rem,1.1vw,0.85rem);max-width:none;color:rgba(255,255,255,0.5);line-height:1.7;">
+            <strong style="color:rgba(255,255,255,0.85);font-weight:600;">通过 Cloudflare Tunnel 生产部署</strong><br>
+            服务器地址：139.199.220.244:6000 — 公网已上线
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: SHORT TERM (plan.txt verbatim) -->
+  <div class="slide" id="slide-4">
+    <div class="slide-bg" style="background-image:url('slide_bg_shortterm_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <div class="anim-up" style="display:flex;align-items:center;gap:0.75rem;">
+          <span class="tag tag-purple">短期计划</span>
+          <span class="eyebrow" style="color:rgba(255,255,255,0.25);">1–2 周</span>
+        </div>
+        <h2 class="anim-up d1">下一步行动计划</h2>
+        <div class="grid-4 anim-up d2">
+          <div class="plan-card" style="border-top:2px solid rgba(253,164,175,0.5);">
+            <div class="plan-label" style="color:var(--rose);">家长提醒系统</div>
+            <div class="plan-items">
+              <li>孩子不在学习状态时，自动提醒家长。</li>
+              <li>家长无需时刻盯着，也能掌握孩子动态</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(160,155,245,0.5);">
+            <div class="plan-label" style="color:var(--purple);">AI 模型切换</div>
+            <div class="plan-items">
+              <li>切换至 <strong>MiniMax</strong> 作为 AI 模型供应商</li>
+              <li>成本更低，响应更快</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(94,220,196,0.5);">
+            <div class="plan-label" style="color:var(--teal);">私有域名</div>
+            <div class="plan-items">
+              <li>注册私有域名，建立正规网站</li>
+              <li>告别临时隧道 URL</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(255,213,96,0.5);">
+            <div class="plan-label" style="color:var(--amber);">预算估算</div>
+            <div class="plan-items">
+              <li>域名注册 + 服务器部署</li>
+              <li>预计花费：<strong>250 元</strong></li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: MIDDLE TERM (plan.txt verbatim) -->
+  <div class="slide" id="slide-5">
+    <div class="slide-bg" style="background-image:url('slide_bg_middleterm_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <div class="anim-up" style="display:flex;align-items:center;gap:0.75rem;">
+          <span class="tag tag-teal">中期计划</span>
+          <span class="eyebrow" style="color:rgba(255,255,255,0.25);">2–4 周</span>
+        </div>
+        <h2 class="anim-up d1">稳定、准确、<br>迎接真实用户</h2>
+        <div class="grid-3 anim-up d2">
+          <div class="plan-card" style="border-top:2px solid rgba(160,155,245,0.5);">
+            <div class="plan-label" style="color:var(--purple);">性能优化</div>
+            <div class="plan-items">
+              <li>提升系统稳定性，缩短加载时间</li>
+              <li>完善缓存机制与队列处理可靠性</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(94,220,196,0.5);">
+            <div class="plan-label" style="color:var(--teal);">图谱精度</div>
+            <div class="plan-items">
+              <li>提升知识图谱内容提取的准确性</li>
+              <li>优化节点间的关联映射</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(255,213,96,0.5);">
+            <div class="plan-label" style="color:var(--amber);">教师试点</div>
+            <div class="plan-items">
+              <li>期中考后向历史老师推广产品</li>
+              <li>获取真实学生的使用反馈</li>
+            </div>
+          </div>
+        </div>
+        <div class="plan-card anim-up d3" style="max-width:560px;margin-top:0.25rem;border-top:2px solid rgba(253,164,175,0.5);width:100%;">
+          <div class="plan-label" style="color:var(--rose);">游戏化学习</div>
+          <div class="plan-items">
+            <li>打造类似 <strong>Blooklet</strong> 和 <strong>Kahoot</strong> 的学习游戏</li>
+            <li>计时答题竞赛、排行榜、组队挑战</li>
+            <li>让学习变成一场 PK</li>
+          </div>
+          <div style="margin-top:0.6rem;"><span class="tag tag-rose">预算：300 元</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: LONG TERM (plan.txt verbatim) -->
+  <div class="slide" id="slide-6">
+    <div class="slide-bg" style="background-image:url('slide_bg_longterm_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <div class="anim-up" style="display:flex;align-items:center;gap:0.75rem;">
+          <span class="tag tag-amber">长期计划</span>
+          <span class="eyebrow" style="color:rgba(255,255,255,0.25);">4–8 周</span>
+        </div>
+        <h2 class="anim-up d1">整合、付费、<br>规模化</h2>
+        <div class="grid-2 anim-up d2" style="max-width:760px;">
+          <div class="plan-card" style="border-top:2px solid rgba(255,213,96,0.5);">
+            <div class="plan-label" style="color:var(--amber);">lliu.fun 整合</div>
+            <div class="plan-items">
+              <li>与 lliu.fun 平台打通</li>
+              <li>共享用户池，支持单点登录</li>
+              <li>双向推广，互通有无</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(94,220,196,0.5);">
+            <div class="plan-label" style="color:var(--teal);">付费系统</div>
+            <div class="plan-items">
+              <li>建立完整付费体系</li>
+              <li>免费 + 高级付费模式，核心功能免费</li>
+              <li>接入支付渠道，支持个人和学校订阅</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(160,155,245,0.5);">
+            <div class="plan-label" style="color:var(--purple);">邮箱验证</div>
+            <div class="plan-items">
+              <li>规范邮箱验证流程</li>
+              <li>完整 SMTP 验证，替代演示环境自动过审</li>
+              <li>账号安全找回与通知</li>
+            </div>
+          </div>
+          <div class="plan-card" style="border-top:2px solid rgba(253,164,175,0.5);">
+            <div class="plan-label" style="color:var(--rose);">Cloudflare 防护</div>
+            <div class="plan-items">
+              <li>接入 Cloudflare 反爬虫/抗 DDoS</li>
+              <li>命名隧道保证服务持续可用</li>
+              <li>SSL 证书、Web 应用防火墙、请求限速</li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: COST BREAKDOWN -->
+  <div class="slide" id="slide-7">
+    <div class="slide-bg" style="background-image:url('slide_bg_server_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <span class="eyebrow anim-up">投资预算</span>
+        <h2 class="anim-up d1">费用路线图</h2>
+        <div class="stat-row anim-up d2" style="gap:clamp(2rem,5vw,5rem);margin-top:0.5rem;">
+          <div class="stat-item">
+            <div class="stat-num" style="color:var(--purple);">¥250</div>
+            <div class="stat-label">短期计划</div>
+            <div style="font-size:clamp(0.55rem,0.9vw,0.68rem);color:rgba(255,255,255,0.3);margin-top:0.2rem;">域名 + 基础部署</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" style="color:var(--teal);">¥300</div>
+            <div class="stat-label">中期计划</div>
+            <div style="font-size:clamp(0.55rem,0.9vw,0.68rem);color:rgba(255,255,255,0.3);margin-top:0.2rem;">性能优化 + 游戏</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" style="color:var(--amber);">¥1000+</div>
+            <div class="stat-label">长期计划</div>
+            <div style="font-size:clamp(0.55rem,0.9vw,0.68rem);color:rgba(255,255,255,0.3);margin-top:0.2rem;">付费 + 规模化</div>
+          </div>
+        </div>
+        <p class="anim-up d3" style="margin-top:0.25rem;">
+          总预算约：<strong style="color:#fff;font-weight:700;">¥1,550+</strong><br>
+          长期费用取决于基础设施规模。
+        </p>
+        <div class="glass anim-up d4" style="max-width:580px;text-align:center;margin-top:0.25rem;">
+          <p style="font-size:clamp(0.7rem,1.1vw,0.85rem);max-width:none;color:rgba(255,255,255,0.5);line-height:1.7;">
+            服务器已上线：<strong style="color:var(--purple);font-weight:600;">139.199.220.244:6000</strong><br>
+            Cloudflare Tunnel 已激活 — 公网地址可用
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: QR CODE -->
+  <div class="slide" id="slide-8">
+    <div class="slide-bg" style="background-image:url('slide_bg_quiz_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <span class="eyebrow anim-up">扫码体验</span>
+        <h2 class="anim-up d1">亲自上手<br><span class="grad-teal">试一试</span></h2>
+        <p class="anim-up d2">扫码即可访问在线平台——无需下载，打开即用。</p>
+        <div class="glass anim-up d3" style="padding:clamp(1rem,2.5vw,1.5rem);border-radius:1.5rem;">
+          <img
+            src="C:\Users\64887\Pictures\Screenshots\屏幕截图 2026-05-09 162133.png"
+            alt="QR Code"
+            style="width:clamp(180px,28vw,320px);height:clamp(180px,28vw,320px);border-radius:1rem;display:block;"
+          >
+        </div>
+        <p class="anim-up d4" style="font-size:clamp(0.65rem,1vw,0.78rem);color:rgba(255,255,255,0.35);margin-top:0.25rem;">
+          手机、平板、电脑——任何设备都能访问
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: THANK YOU -->
+  <div class="slide" id="slide-9">
+    <div class="slide-bg" style="background-image:url('slide_bg_thankyou_001.jpg');"></div>
+    <div class="cover-overlay"></div>
+    <div class="inner">
+      <div class="center-col">
+        <div class="anim-up" style="font-size:clamp(3.5rem,9vw,7rem);line-height:1;">🏆</div>
+        <h1 class="anim-up d1">感谢<br><span class="grad-teal">观看</span></h1>
+        <p class="anim-up d2">从一份文档，到真正掌握——从上传开始。</p>
+        <div class="divider anim-up d3" style="margin:0.75rem 0;"></div>
+        <div class="glass anim-up d4" style="max-width:500px;text-align:center;">
+          <div class="stat-row" style="gap:clamp(1.5rem,4vw,3rem);">
+            <div class="stat-item">
+              <div class="stat-num" style="font-size:clamp(1.2rem,3vw,2rem);color:var(--purple);">本地</div>
+              <div class="stat-label">localhost:3000 / 3001</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" style="font-size:clamp(1.2rem,3vw,2rem);color:var(--teal);">云端</div>
+              <div class="stat-label">139.199.220.244:6000</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button class="nav-btn" onclick="prevSlide()">←</button>
+  <div class="nav-dots" id="dots"></div>
+  <span id="counter" style="font-size:0.6rem;color:rgba(255,255,255,0.28);font-family:var(--font-body);min-width:2.2rem;text-align:center;"></span>
+  <button class="nav-btn" onclick="nextSlide()">→</button>
+</div>
+
+<script>
+  const TOTAL = 9;
+  let current = 1;
+  const dotsEl = document.getElementById('dots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i === 1 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+  function goTo(n) {
+    if (n < 1) n = 1;
+    if (n > TOTAL) n = TOTAL;
+    current = n;
+    for (let i = 1; i <= TOTAL; i++) {
+      document.getElementById('slide-' + i).classList.toggle('active', i === n);
+    }
+    dotsEl.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i + 1 === n);
+    });
+    document.getElementById('counter').textContent = current + ' / ' + TOTAL;
+  }
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+  });
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) dx < 0 ? nextSlide() : prevSlide();
+  });
+  document.querySelectorAll('.slide').forEach(s => {
+    s.addEventListener('click', e => {
+      if (e.target.closest('button') || e.target.closest('a')) return;
+      const r = s.getBoundingClientRect();
+      e.clientX > r.left + r.width * 0.6 ? nextSlide() : prevSlide();
+    });
+  });
+  goTo(1);
+</script>
+
+</body>
+</html>

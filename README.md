@@ -1,6 +1,5 @@
 # OCR Knowledge Base Matcher
 
-<<<<<<< HEAD
 <p align="center">
   <strong>AI-powered education platform</strong> — extract structured knowledge from documents, build knowledge graphs, and generate adaptive study materials with spaced repetition.<br>
   <sub>OCR &rarr; Knowledge Graph &rarr; Flashcards &middot; Quizzes &middot; Cheat Sheets &middot; SM-2 Review</sub>
@@ -86,6 +85,73 @@ npm run dev
 
 ---
 
+## Project Structure
+
+```
+ocr-kb-matcher/
+├── frontend/              # Next.js 16, React 19, App Router, Tailwind v4, shadcn/ui, @xyflow/react
+│   ├── app/              # Pages (dashboard/, knowledge-graph/, quiz/, graph-editor/, etc.)
+│   ├── components/       # UI, upload/, results/, analytics/, quiz/, auth/, navigation/, theme/
+│   ├── contexts/          # AuthContext.tsx
+│   ├── hooks/             # useJobStatus.ts, useUpload.ts
+│   ├── lib/               # api.ts (fetch + auth), auth.ts, utils.ts
+│   └── .env.local         # NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+├── backend/               # Express + TypeScript
+│   ├── src/
+│   │   ├── routes/        # 29 route groups mounted under /api/*
+│   │   ├── services/      # 37 service files — core business logic
+│   │   ├── middleware/     # errorHandler.ts (asyncHandler wrapper + AppError)
+│   │   ├── types/         # Local TypeScript types
+│   │   └── prompts/       # AI prompt templates
+│   └── dist/              # Compiled JS output
+├── shared/
+│   └── types.ts           # Shared TypeScript types
+└── package.json           # npm workspaces — runs both concurrently
+```
+
+### Key Backend Services (`backend/src/services/`)
+
+| Service | File | Purpose |
+|---|---|---|
+| Pipeline | `jobProcessor.ts` | Full doc pipeline: OCR → chunk → AI match → enrich |
+| AI | `ai.ts` | Moonshot API via OpenAI-compatible client, retry + exponential backoff, 120s timeout |
+| KB Matching | `aiKnowledgeMatching.ts` | Match content against knowledge nodes |
+| Graph | `knowledgeGraph.ts` | Graph CRUD + traversal |
+| Graph Storage | `knowledgeGraphStorage.ts` | JSON file persistence (not Neo4j) |
+| OCR | `ocr.ts` | Tesseract.js pipeline, path sanitization |
+| Quiz | `quizService.ts` | Adaptive quiz generation + scoring |
+| Review | `reviewService.ts` | SM-2 spaced repetition algorithm |
+| Queue | `queueProcessor.ts` | Async job queue with polling, stale job recovery |
+
+> **Storage:** **JSON flat-file persistence** by default. Neo4j vars in `.env` are unused.
+
+### Backend Startup Sequence (`backend/src/index.ts`)
+
+1. Server listens on PORT
+2. Initialize knowledge graph storage (`getKnowledgeGraphStorage().initialize()`)
+3. Check for stale jobs from previous crash (`queueProcessor.checkStaleJobs()`)
+4. Start queue polling (default: every 5s, configurable via `QUEUE_POLL_INTERVAL_MS`)
+5. Attach event listeners: `job:started`, `job:completed`, `job:failed`, `job:timeout`
+6. Graceful shutdown on SIGTERM/SIGINT — stops polling, waits 10s max
+
+---
+
+## Environment Variables
+
+```env
+PORT=3001
+MOONSHOT_API_KEY=sk-...       # Required — AI matching and generation
+MOONSHOT_BASE_URL=            # Optional — defaults to OpenAI-compatible endpoint
+MOONSHOT_MODEL=               # Optional — defaults to moonshot-v1-8k
+CORS_ORIGIN=                  # Comma-separated allowed origins
+JWT_SECRET=                   # Required — JWT signing secret
+JWT_REFRESH_SECRET=           # Required — refresh token secret
+QUEUE_POLL_INTERVAL_MS=5000   # Optional — job polling interval
+LOG_LEVEL=info                # Optional — debug|info|warn|error
+```
+
+---
+
 ## API Reference
 
 ### Document Processing
@@ -156,179 +222,79 @@ curl -X POST http://localhost:3001/api/study/notes/{nodeId}
 ```
 
 ---
-=======
-Extract structured data from documents and match against knowledge base entries.
->>>>>>> c2c7a0f (Initial state)
 
-## Project Structure
+## Commands
 
+### Local Dev
+
+```bash
+npm run dev              # Both frontend + backend (concurrently)
+npm run dev:frontend     # Frontend only (http://localhost:3000)
+npm run dev:backend      # Backend only (http://localhost:3001)
+npm run build            # Build both (frontend next build → backend tsc)
 ```
-<<<<<<< HEAD
-backend/
-├── src/
-│   ├── routes/           # 20+ route groups
-│   │   ├── graph.ts      # Knowledge graph endpoints
-│   │   ├── quiz.ts       # Quiz generation & submission
-│   │   ├── jobs.ts      # Job queue management
-│   │   ├── flashcards.ts  # Flashcard CRUD
-│   │   └── ...
-│   ├── services/
-│   │   ├── jobProcessor.ts           # Main processing pipeline
-│   │   ├── knowledgeGraph.ts        # Graph operations
-│   │   ├── knowledgeGraphStorage.ts  # JSON persistence
-│   │   ├── aiKnowledgeMatching.ts    # Moonshot AI matching
-│   │   ├── quizService.ts          # Adaptive quiz logic
-│   │   ├── reviewService.ts        # SM-2 spaced repetition
-│   │   ├── flashcardService.ts    # Flashcard generation
-│   │   ├── studyMaterialService.ts  # Cheat sheets & notes
-│   │   ├── ocr.ts                # Tesseract.js pipeline
-│   │   └── queueProcessor.ts       # Async job queue
-│   └── data/             # JSON file storage
-│       ├── knowledge-graph.json
-│       ├── flashcards/
-│       └── user-progress.json
+
+### Frontend Scripts (`cd frontend`)
+
+```bash
+npm run dev              # next dev --webpack
+npm run dev:turbopack    # next dev --turbopack (faster HMR)
+npm run lint             # eslint flat-config, next/core-web-vitals
+npm run build            # next build --webpack
+```
+
+### Backend Scripts (`cd backend`)
+
+```bash
+npm run dev    # nodemon + ts-node (hot reload)
+npm run build  # tsc → dist/
+npm run start  # node dist/index.js
 ```
 
 ---
 
-## Environment Variables
+## Conventions
 
-```env
-PORT=3001
-ALLOWED_ORIGINS=http://localhost:3000
-MOONSHOT_API_KEY=sk-...       # Required — AI matching and generation
-NEO4J_URI=bolt://localhost:7687  # Optional — not currently used
-NEO4J_PASSWORD=
-```
+### Backend Routes
 
----
-
-## Development
-
-```bash
-# Backend only
-cd backend && npm install && npm run dev
-
-# TypeScript check
-npx tsc --noEmit
-```
-
----
-
-=======
-ocr-kb-matcher/
-├── frontend/              # Next.js 14+ with TypeScript, App Router, Tailwind
-│   ├── app/              # Next.js App Router
-│   ├── components/       # React components
-│   ├── components/ui/    # shadcn/ui components
-│   └── lib/              # Utility functions
-├── backend/               # Express.js with TypeScript
-│   ├── src/              # Source code
-│   └── dist/             # Compiled output
-└── package.json          # Root workspace configuration
-```
-
-## Prerequisites
-
-- Node.js 18+ (recommended: 20.x)
-- npm 9+
-
-## Quick Start
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-This will install:
-- Root workspace dependencies (concurrently)
-- Frontend dependencies (Next.js, React, Tailwind, shadcn/ui)
-- Backend dependencies (Express, TypeScript)
-
-### 2. Start Development Servers
-
-```bash
-npm run dev
-```
-
-This starts both services concurrently:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-
-### 3. Verify Installation
-
-- Frontend: Open http://localhost:3000
-- Backend Health: http://localhost:3001/health
-
-## Available Scripts
-
-### Root Level
-
-```bash
-npm run dev              # Start both frontend and backend
-npm run dev:frontend     # Start only frontend
-npm run dev:backend      # Start only backend
-npm run install:all      # Install all dependencies
-npm run build            # Build both frontend and backend
-```
-
-### Frontend Only
-
-```bash
-cd frontend
-npm run dev              # Start development server
-npm run build            # Build for production
-npm run lint             # Run ESLint
-```
-
-### Backend Only
-
-```bash
-cd backend
-npm run dev              # Start development server with hot reload
-npm run build            # Compile TypeScript
-npm run start            # Start production server
-```
-
-## Technology Stack
+- All routes use `asyncHandler` wrapper from `middleware/errorHandler.ts`
+- Route files export a default `Router`; mounted in `routes/index.ts` under `/api/*`
+- Dev-only routes (`/api/test`) guarded by `NODE_ENV !== 'production'`
+- Custom errors: `new AppError(message, statusCode)` → caught by global error handler
+- No DB transactions — JSON file writes are not atomic
+- Auth: `optionalAuth` middleware (JWT) — attaches `userId` if token present, but allows guest access on most routes
 
 ### Frontend
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
 
-### Backend
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **CORS**: Enabled for all origins
-- **Development**: Nodemon + ts-node
+- **API calls:** `lib/api.ts` — raw `fetch`, auth-aware (Bearer token), uses `NEXT_PUBLIC_API_BASE_URL`
+- **Dark mode:** Every component must check `useTheme().theme` (`'light' | 'dark'`)
+- **Styling:** Tailwind v4 via `@tailwindcss/postcss` (no `tailwind.config.*`)
+- **Icons:** Lucide React — individual imports only, never barrel
+- **Classes:** Always use `clsx()`/`cn()` for conditional classes
+- **Colors:** Use `bg-slate-*` (never `bg-gray-*`); dark mode alternatives always required
 
-## API Endpoints
+---
 
-### Health Check
-```http
-GET /health
-```
+## Anti-Patterns
 
-Response:
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
+### Backend (`backend/src/`)
 
-## Environment Variables
+- **Don't call AI directly** — use `matchWithRetry()` with exponential backoff from `ai.ts`
+- **Don't assume Neo4j is active** — always use `knowledgeGraphStorage.ts` JSON persistence
+- **Don't add routes without `asyncHandler`** — unhandled async errors crash Express
+- **Don't mount routes at root** — all go through `routes/index.ts`
+- **Don't do DB transactions** — JSON writes are not atomic
 
-### Backend (.env)
-```
-PORT=3001
-```
+### Frontend (`frontend/`)
 
->>>>>>> c2c7a0f (Initial state)
+- **Never hardcode colors** without `theme === 'dark'` check
+- **Never use bare `bg-white`** or `text-slate-700` without dark mode alternative
+- **Never use `bg-gray-*`** — use `bg-slate-*` consistently
+- **Never skip `clsx()`/`cn()`** for conditional classes — always use it
+- **Always use Lucide React** icons (individual imports only, no barrel)
+
+---
+
 ## License
 
 MIT

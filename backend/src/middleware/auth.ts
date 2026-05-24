@@ -4,7 +4,7 @@ import { verifyAccessToken } from '../services/jwtService';
 export interface AuthenticatedUser {
   userId: string;
   email: string;
-  accountType: 'student' | 'parent';
+  accountType: 'student' | 'parent' | 'teacher';
 }
 
 declare global {

@@ -35,7 +35,7 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  accountType: z.enum(['student', 'parent']).optional().default('student'),
+  accountType: z.enum(['student', 'parent', 'teacher']).optional().default('student'),
 });
 
 const verifyEmailSchema = z.object({
@@ -153,6 +153,11 @@ router.post(
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
+    res.setHeader('Set-Cookie', [
+      `accessToken=${accessToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`,
+      `refreshToken=${refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`,
+    ]);
+
     res.status(201).json({
       success: true,
       data: {
@@ -229,6 +234,11 @@ router.post(
 
     const userWithoutPassword = toUserWithoutPassword(user);
 
+    res.setHeader('Set-Cookie', [
+      `accessToken=${accessToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`,
+      `refreshToken=${refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`,
+    ]);
+
     res.json({
       success: true,
       data: {
@@ -275,6 +285,10 @@ router.post(
 router.post(
   '/logout',
   asyncHandler(async (_req: Request, res: Response) => {
+    res.setHeader('Set-Cookie', [
+      'accessToken=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0',
+      'refreshToken=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0',
+    ]);
     res.json({ success: true });
   })
 );
