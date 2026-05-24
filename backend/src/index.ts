@@ -1,6 +1,7 @@
 import { createApp, getPort } from './app';
 import { getQueueProcessor } from './services/queueProcessor';
 import { getKnowledgeGraphStorage } from './services/knowledgeGraphStorage';
+import { initGameGateway } from './gameGateway';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -77,6 +78,10 @@ function main(): void {
     queueProcessor.on('job:timeout', (job) => {
       console.log(`⏱️ Job timeout: ${job.id} (${job.fileName})`);
     });
+
+    // Initialize Socket.IO game gateway for multiplayer quiz
+    initGameGateway(server);
+    console.log('🎮 Game gateway initialized on /ws/game');
   });
 
   // Graceful shutdown
