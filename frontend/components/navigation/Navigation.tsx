@@ -7,7 +7,8 @@ import axios from 'axios';
 import {
   Home, LayoutDashboard, Brain, BookOpen, GraduationCap, Layers,
   Moon, Sun, FileText, ExternalLink, Menu, X, MessageCircle, Upload,
-  Search, Settings, HelpCircle, ChevronRight, ChevronDown, Users, LogOut
+  Search, Settings, HelpCircle, ChevronRight, ChevronDown, Users, LogOut,
+  Gamepad2, Link2
 } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,21 +38,30 @@ export function Navigation() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const isParent = user?.accountType === 'parent';
+  const isTeacher = user?.accountType === 'teacher';
 
-  const navItems = [
-    { href: '/', label: 'Home', icon: Home, description: 'Dashboard & quick actions' },
-    { href: '/import', label: 'Import Content', icon: Upload, description: 'Build your knowledge base' },
-    { href: '/learn', label: 'Learn', icon: GraduationCap, description: 'Study with quizzes' },
-    { href: '/flashcards', label: 'Flashcards', icon: Layers, description: 'Spaced repetition cards' },
-    { href: '/chat', label: 'AI Assistant', icon: MessageCircle, description: 'Chat with your knowledge' },
-    { href: '/review', label: 'Review', icon: FileText, description: 'Review sessions' },
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics, progress & certificates' },
-    { href: '/knowledge-graph', label: 'Knowledge Graph', icon: Brain, description: 'Visualize connections' },
-  ];
-
-  if (isParent) {
-    navItems.push({ href: '/parent-monitor', label: 'Parent Monitor', icon: Users, description: 'Monitor progress' });
-  }
+  const navItems = isTeacher
+    ? [
+        { href: '/teacher/dashboard', label: 'Teacher Dashboard', icon: Users, description: 'My students & progress' },
+        { href: '/teacher/game/new', label: 'Host Game', icon: Gamepad2, description: 'Start a new quiz game' },
+        { href: '/teacher/games', label: 'Game History', icon: LayoutDashboard, description: 'Past hosted games' },
+      ]
+    : isParent
+    ? [
+        { href: '/parent-monitor', label: 'Parent Monitor', icon: Users, description: 'Monitor your child' },
+        { href: '/', label: 'Home', icon: Home, description: 'Overview' },
+      ]
+    : [
+        { href: '/', label: 'Home', icon: Home, description: 'Dashboard & quick actions' },
+        { href: '/import', label: 'Import Content', icon: Upload, description: 'Build your knowledge base' },
+        { href: '/learn', label: 'Learn', icon: GraduationCap, description: 'Study with quizzes' },
+        { href: '/flashcards', label: 'Flashcards', icon: Layers, description: 'Spaced repetition cards' },
+        { href: '/chat', label: 'AI Assistant', icon: MessageCircle, description: 'Chat with your knowledge' },
+        { href: '/review', label: 'Review', icon: FileText, description: 'Review sessions' },
+        { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics, progress & certificates' },
+        { href: '/teacher-links', label: 'Teacher Links', icon: Link2, description: 'Manage teacher connections' },
+        { href: '/knowledge-graph', label: 'Knowledge Graph', icon: Brain, description: 'Visualize connections' },
+      ];
 
   const [headerOpen, setHeaderOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -61,6 +71,7 @@ export function Navigation() {
   const headerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const themeToggleRef = useRef<HTMLButtonElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [mounted, setMounted] = useState(false);
@@ -116,17 +127,31 @@ export function Navigation() {
       <button
         ref={buttonRef}
         onClick={() => setHeaderOpen(!headerOpen)}
-        className={`fixed left-4 top-4 z-[99999] flex h-14 w-14 items-center justify-center rounded-2xl shadow-2xl backdrop-blur-xl transition-all duration-300 transition-transform ${headerOpen ? theme === 'dark' ? 'bg-slate-700 ring-2 ring-blue-500/30' : 'bg-white ring-2 ring-blue-500/30' : theme === 'dark' ? 'bg-slate-800/90 hover:bg-slate-700 hover:scale-105 active:scale-95' : 'bg-white/90 hover:bg-white hover:scale-105 active:scale-95'}`}
+        onTouchEnd={(e) => { e.preventDefault(); setHeaderOpen(!headerOpen); }}
+        aria-label="Toggle navigation menu"
+        aria-expanded={headerOpen}
+        style={{
+          position: 'fixed',
+          left: '1rem',
+          top: `calc(1rem + env(safe-area-inset-top, 0px))`,
+          zIndex: 2147483647,
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
+          cursor: 'pointer',
+          backdropFilter: 'blur(12px)',
+        }}
+        className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-2xl transition-all duration-300 cursor-pointer ${headerOpen ? theme === 'dark' ? 'bg-slate-700 ring-2 ring-blue-500/30' : 'bg-white ring-2 ring-blue-500/30' : theme === 'dark' ? 'bg-slate-800/90 hover:bg-slate-700 active:scale-95' : 'bg-white/90 hover:bg-white active:scale-95'}`}
       >
-        <div className="relative">
-          <Menu className={`h-6 w-6 transition-all duration-300 ${headerOpen ? 'rotate-90 opacity-0' : 'rotate-0 opacity-100'} ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`} />
-          <X className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${headerOpen ? 'rotate-0 opacity-100' : '-rotate-90 opacity-0'} ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`} />
+        <div className="relative flex h-6 w-6 items-center justify-center">
+          <Menu className={`h-6 w-6 ${headerOpen ? 'rotate-90 opacity-0' : 'rotate-0 opacity-100'} ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`} style={{ transition: 'opacity 300ms, transform 300ms' }} />
+          <X className={`absolute h-6 w-6 ${headerOpen ? 'rotate-0 opacity-100' : '-rotate-90 opacity-0'} ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`} style={{ transition: 'opacity 300ms, transform 300ms' }} />
         </div>
       </button>
 
       <div
         ref={headerRef}
-        className={`fixed inset-x-0 top-0 z-[99998] transition-all duration-500 ease-out ${headerOpen ? 'translate-y-0 opacity-100' : '-translate-y-[150%] opacity-0 pointer-events-none'}`}
+        style={{ zIndex: 2147483642 }}
+        className={`fixed inset-x-0 top-0 transition-all duration-500 ease-out ${headerOpen ? 'translate-y-0 opacity-100' : '-translate-y-[150%] opacity-0 pointer-events-none'}`}
       >
         <div className={`absolute inset-0 transition-opacity duration-500 ${headerOpen ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-slate-950/95' : 'bg-white/95'} backdrop-blur-2xl`} />
 
@@ -175,7 +200,8 @@ export function Navigation() {
             </div>
 
             <button
-              onClick={toggleTheme}
+              ref={themeToggleRef}
+              onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
               className={`flex h-12 w-12 items-center justify-center rounded-2xl shrink-0 transition-all duration-300 hover:scale-110 active:scale-95 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-yellow-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
@@ -187,13 +213,13 @@ export function Navigation() {
 
             {!user ? (
               <div className="flex items-center gap-3 shrink-0">
-                <Link href="/auth/login" onClick={() => setHeaderOpen(false)} className={cn('rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300', theme === 'dark' ? 'text-slate-300 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100')}>Sign In</Link>
-                <Link href="/auth/register" onClick={() => setHeaderOpen(false)} className={cn('rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300', theme === 'dark' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500')}>Get Started</Link>
+                <Link href="/auth/login" onClick={(e) => { e.stopPropagation(); setHeaderOpen(false); }} className={cn('rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300', theme === 'dark' ? 'text-slate-300 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100')}>Sign In</Link>
+                <Link href="/auth/register" onClick={(e) => { e.stopPropagation(); setHeaderOpen(false); }} className={cn('rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300', theme === 'dark' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500')}>Get Started</Link>
               </div>
             ) : (
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
-                  onClick={() => { setUserMenuOpen(!userMenuOpen); }}
+                  onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
                   className={cn(
                     'group flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-300',
                     theme === 'dark'
@@ -296,7 +322,7 @@ export function Navigation() {
             )}
           </div>
 
-          {user && (
+          {user && !isParent && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {navItems.map((item) => {
@@ -338,7 +364,14 @@ export function Navigation() {
         </div>
       </div>
 
-      {headerOpen && <div className="fixed inset-0 z-[99990] transition-opacity duration-300" onClick={() => setHeaderOpen(false)} />}
+      {headerOpen && (
+        <div
+          className="fixed inset-0 transition-opacity duration-300"
+          style={{ zIndex: 2147483640 }}
+          onClick={() => setHeaderOpen(false)}
+          onTouchStart={() => setHeaderOpen(false)}
+        />
+      )}
     </>
   );
 }

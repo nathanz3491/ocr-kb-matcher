@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { authApi, User } from '@/lib/auth';
+import { storage } from '@/lib/storage';
 
 const DEV_MODE = process.env.NODE_ENV !== 'production';
 
@@ -10,13 +11,14 @@ const DEV_USER: User = {
   email: 'nathan@dev.local',
   name: 'Nathan',
   emailVerified: true,
+  accountType: 'teacher',
 };
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, password: string, name: string, accountType?: 'student' | 'parent') => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, name: string, accountType?: 'student' | 'parent' | 'teacher') => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<{ success: boolean; error?: string }>;
   resendCode: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -39,10 +41,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (result.success && result.data?.user) {
         const freshUser = result.data.user;
         setUser(freshUser);
-        try { localStorage.setItem('authUser', JSON.stringify(freshUser)); } catch {}
+        try { storage.setItem('authUser', JSON.stringify(freshUser)); } catch {}
+      } else {
+        setUser(null);
       }
     } catch {
       setUser(null);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -53,12 +59,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
     try {
-      const stored = localStorage.getItem('authUser');
+      const stored = storage.getItem('authUser');
       if (stored) setUser(JSON.parse(stored) as User);
-    } catch {}
+    } catch {
+      // localStorage unavailable or parse failed — continue without cached user
+    }
     const token = authApi.getAccessToken();
     if (token) {
-      refreshUser().finally(() => setLoading(false));
+      const timeoutId = setTimeout(() => setLoading(false), 10000);
+      refreshUser().finally(() => {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      });
     } else {
       setLoading(false);
     }
@@ -68,24 +80,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const result = await authApi.login(email, password);
     if (result.success && result.data) {
       authApi.setTokens(result.data.accessToken!, result.data.refreshToken!);
-      document.cookie = `accessToken=${result.data.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
       const u = result.data.user || null;
       setUser(u);
       setLoading(false);
-      if (u) { try { localStorage.setItem('authUser', JSON.stringify(u)); } catch {} }
+      if (u) { try { storage.setItem('authUser', JSON.stringify(u)); } catch {} }
       return { success: true };
     }
     return { success: false, error: result.error || 'Login failed' };
   };
 
-  const register = async (email: string, password: string, name: string, accountType?: 'student' | 'parent'): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, password: string, name: string, accountType?: 'student' | 'parent' | 'teacher'): Promise<{ success: boolean; error?: string }> => {
     const result = await authApi.register(email, password, name, accountType);
     if (result.success && result.data) {
       authApi.setTokens(result.data.accessToken!, result.data.refreshToken!);
       const u = result.data.user || null;
       setUser(u);
       setLoading(false);
-      if (u) { try { localStorage.setItem('authUser', JSON.stringify(u)); } catch {} }
+      if (u) { try { storage.setItem('authUser', JSON.stringify(u)); } catch {} }
       return { success: true };
     }
     return { success: false, error: result.error || 'Registration failed' };
@@ -93,8 +104,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     await authApi.logout();
-    document.cookie = 'accessToken=; path=/; max-age=0';
-    try { localStorage.removeItem('authUser'); } catch {}
+    authApi.clearTokens();
+    try { storage.removeItem('authUser'); } catch {}
     if (DEV_MODE) {
       setUser(DEV_USER);
     } else {
