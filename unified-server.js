@@ -46,7 +46,7 @@ function proxyRequest(req, res, targetHost, targetPort) {
 function serveStatic(req, res) {
   let url = req.url.split('?')[0];
   if (!url.startsWith('/_next/') && !url.startsWith('/favicon') && !url.endsWith('.ico') && !url.endsWith('.svg')) {
-    res.writeHead(404);
+    res.writeHead(404, { 'Cache-Control': 'no-store' });
     res.end();
     return;
   }
@@ -56,7 +56,7 @@ function serveStatic(req, res) {
   try {
     const stat = fs.statSync(staticPath);
     if (!stat.isFile()) {
-      res.writeHead(404);
+      res.writeHead(404, { 'Cache-Control': 'no-store' });
       res.end();
       return;
     }
@@ -64,7 +64,7 @@ function serveStatic(req, res) {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'public, max-age=31536000' });
     fs.createReadStream(staticPath).pipe(res);
   } catch (err) {
-    res.writeHead(404);
+    res.writeHead(404, { 'Cache-Control': 'no-store' });
     res.end();
   }
 }
