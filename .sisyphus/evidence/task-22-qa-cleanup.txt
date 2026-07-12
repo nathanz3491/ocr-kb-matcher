@@ -1,0 +1,21 @@
+Task: 22 (renumbered from 40) - Delete/move _qa_task4.ts from backend/src
+Date: 2026-07-12
+
+## Summary
+Moved backend/src/_qa_task4.ts to backend/scripts/_qa_task4.ts
+
+## Decision
+File contains reusable QA test patterns for user service functions:
+- getUserById (missing + valid)
+- saveUser persistence
+- bootstrapAdmin promotion
+- getAdminEmails parsing
+- setUserTier updates
+
+## Verification
+- backend/src/_qa_task4.ts exists: FALSE ✓
+- backend/scripts/_qa_task4.ts exists: TRUE ✓
+- cd backend && npx tsc --noEmit: PASS (no errors) ✓
+
+## Commit
+chore: move qa task4 script out of src
