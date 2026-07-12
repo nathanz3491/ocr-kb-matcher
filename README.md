@@ -1,6 +1,5 @@
 # OCR Knowledge Base Matcher
 
-<<<<<<< HEAD
 <p align="center">
   <strong>AI-powered education platform</strong> — extract structured knowledge from documents, build knowledge graphs, and generate adaptive study materials with spaced repetition.<br>
   <sub>OCR &rarr; Knowledge Graph &rarr; Flashcards &middot; Quizzes &middot; Cheat Sheets &middot; SM-2 Review</sub>
@@ -156,14 +155,10 @@ curl -X POST http://localhost:3001/api/study/notes/{nodeId}
 ```
 
 ---
-=======
-Extract structured data from documents and match against knowledge base entries.
->>>>>>> c2c7a0f (Initial state)
 
 ## Project Structure
 
 ```
-<<<<<<< HEAD
 backend/
 ├── src/
 │   ├── routes/           # 20+ route groups
@@ -215,120 +210,6 @@ npx tsc --noEmit
 
 ---
 
-=======
-ocr-kb-matcher/
-├── frontend/              # Next.js 14+ with TypeScript, App Router, Tailwind
-│   ├── app/              # Next.js App Router
-│   ├── components/       # React components
-│   ├── components/ui/    # shadcn/ui components
-│   └── lib/              # Utility functions
-├── backend/               # Express.js with TypeScript
-│   ├── src/              # Source code
-│   └── dist/             # Compiled output
-└── package.json          # Root workspace configuration
-```
-
-## Prerequisites
-
-- Node.js 18+ (recommended: 20.x)
-- npm 9+
-
-## Quick Start
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-This will install:
-- Root workspace dependencies (concurrently)
-- Frontend dependencies (Next.js, React, Tailwind, shadcn/ui)
-- Backend dependencies (Express, TypeScript)
-
-### 2. Start Development Servers
-
-```bash
-npm run dev
-```
-
-This starts both services concurrently:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-
-### 3. Verify Installation
-
-- Frontend: Open http://localhost:3000
-- Backend Health: http://localhost:3001/health
-
-## Available Scripts
-
-### Root Level
-
-```bash
-npm run dev              # Start both frontend and backend
-npm run dev:frontend     # Start only frontend
-npm run dev:backend      # Start only backend
-npm run install:all      # Install all dependencies
-npm run build            # Build both frontend and backend
-```
-
-### Frontend Only
-
-```bash
-cd frontend
-npm run dev              # Start development server
-npm run build            # Build for production
-npm run lint             # Run ESLint
-```
-
-### Backend Only
-
-```bash
-cd backend
-npm run dev              # Start development server with hot reload
-npm run build            # Compile TypeScript
-npm run start            # Start production server
-```
-
-## Technology Stack
-
-### Frontend
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
-
-### Backend
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **CORS**: Enabled for all origins
-- **Development**: Nodemon + ts-node
-
-## API Endpoints
-
-### Health Check
-```http
-GET /health
-```
-
-Response:
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
-
-## Environment Variables
-
-### Backend (.env)
-```
-PORT=3001
-```
-
->>>>>>> c2c7a0f (Initial state)
 ## License
 
 MIT
