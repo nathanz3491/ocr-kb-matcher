@@ -49,9 +49,10 @@ export function Navigation() {
     { href: '/knowledge-graph', label: 'Knowledge Graph', icon: Brain, description: 'Visualize connections' },
   ];
 
-  if (isParent) {
-    navItems.push({ href: '/parent-monitor', label: 'Parent Monitor', icon: Users, description: 'Monitor progress' });
-  }
+  // DISABLED for MVP — see COMPLIANCE.md for re-enable conditions
+  // if (isParent) {
+  //   navItems.push({ href: '/parent-monitor', label: 'Parent Monitor', icon: Users, description: 'Monitor progress' });
+  // }
 
   const [headerOpen, setHeaderOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);

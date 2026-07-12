@@ -8,10 +8,36 @@ import {
   getStudentDashboardData,
 } from '../services/parentLinkService';
 import { getUserById } from '../services/userService';
+import { logger } from '../lib/logger';
 
 const router = Router();
 
+/**
+ * Check that the student has provided parental consent (not a minor, or has consented).
+ * Returns an error message string if blocked, null if allowed.
+ */
+async function checkStudentConsent(studentId: string): Promise<string | null> {
+  const student = await getUserById(studentId);
+  if (!student) return 'Student not found';
+  if (student.requiresParentalConsent) {
+    logger.warn({ studentId }, 'Blocked parent-monitor access: minor without parental consent');
+    return 'Parental consent required to access this student\'s data';
+  }
+  return null;
+}
+
+// ─── DISABLED: Compliance gating for MVP ──────────────────────────────────
+// Parent-monitor is disabled until explicit parental consent flow is implemented.
+// See COMPLIANCE.md for details. Existing route code is preserved for future re-enable.
+router.use((_req: Request, res: Response) => {
+  res.status(503).json({
+    success: false,
+    error: 'Parent monitoring is temporarily disabled. This feature will be available in a future release.',
+  });
+});
+
 // ─── Auth guard for ALL routes ───────────────────────────────────────────
+// NOTE: Unreachable while disabled — restore when compliance gates are in place.
 router.use(authenticate);
 
 // Middleware: ensure user is a parent
@@ -73,6 +99,12 @@ router.get(
       return;
     }
 
+    const consentError = await checkStudentConsent(studentId);
+    if (consentError) {
+      res.status(403).json({ success: false, error: consentError });
+      return;
+    }
+
     const student = await getUserById(studentId);
     if (!student) {
       res.status(404).json({ success: false, error: 'Student not found' });
@@ -105,6 +137,12 @@ router.get(
     const parentId = req.user!.userId;
     const studentId = req.params.id;
 
+    const consentError = await checkStudentConsent(studentId);
+    if (consentError) {
+      res.status(403).json({ success: false, error: consentError });
+      return;
+    }
+
     const linked = await requireLink(parentId, studentId);
     if (!linked) {
       res.status(403).json({ success: false, error: 'Not linked to this student' });
@@ -123,6 +161,12 @@ router.get(
     const parentId = req.user!.userId;
     const studentId = req.params.id;
 
+    const consentError = await checkStudentConsent(studentId);
+    if (consentError) {
+      res.status(403).json({ success: false, error: consentError });
+      return;
+    }
+
     const linked = await requireLink(parentId, studentId);
     if (!linked) {
       res.status(403).json({ success: false, error: 'Not linked to this student' });
@@ -140,6 +184,12 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const parentId = req.user!.userId;
     const studentId = req.params.id;
+
+    const consentError = await checkStudentConsent(studentId);
+    if (consentError) {
+      res.status(403).json({ success: false, error: consentError });
+      return;
+    }
 
     const linked = await requireLink(parentId, studentId);
     if (!linked) {
