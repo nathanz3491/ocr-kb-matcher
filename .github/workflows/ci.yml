@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - name: Backend typecheck
+        run: cd backend && npx tsc --noEmit
+
+      - name: Frontend install
+        run: cd frontend && npm ci
+
+      - name: Frontend lint
+        run: cd frontend && npm run lint
+
+      - name: Frontend typecheck
+        run: cd frontend && npx tsc --noEmit
