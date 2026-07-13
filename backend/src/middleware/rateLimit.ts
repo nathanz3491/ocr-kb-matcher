@@ -20,13 +20,16 @@ function rateLimitHandler(_req: Request, res: Response): void {
 // ─── Limiters ────────────────────────────────────────────────
 
 /**
- * Auth limiter — brute-force protection for login, register, and refresh.
+ * Auth limiter — per-IP rate limit for login, register, and refresh.
  *
- * 10 requests per 15-minute window per IP address.
+ * 20 requests per 15-minute window per IP address.
+ * The per-email account lockout (10 failed attempts → lock) triggers
+ * before this per-IP limit, so legitimate users behind NAT are not
+ * penalised for failed attempts from other users on the same IP.
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 20,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   handler: rateLimitHandler,
