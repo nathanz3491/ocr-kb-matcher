@@ -6,7 +6,7 @@ import { Navigation } from '@/components/navigation/Navigation';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { 
   ArrowLeft, Moon, Sun, Monitor, Palette, Bell, Shield, 
-  Database, Clock, ChevronRight, Check, Info
+  Database, Clock, ChevronRight, Check, Info, Crown
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -243,6 +243,41 @@ export default function SettingsPage() {
               <span className="text-slate-800 dark:text-white font-medium">Next.js + Express + Neo4j</span>
             </div>
           </div>
+        </div>
+
+        <div className={clsx(
+          'rounded-2xl border p-6 mb-6 backdrop-blur-xl transition-all duration-300',
+          theme === 'dark'
+            ? 'bg-slate-800/40 border-slate-700/30'
+            : 'bg-white/60 border-white/40 shadow-xl'
+        )}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={clsx(
+              'flex h-10 w-10 items-center justify-center rounded-xl',
+              theme === 'dark' ? 'bg-amber-600/20' : 'bg-amber-100'
+            )}>
+              <Crown className={clsx('h-5 w-5', theme === 'dark' ? 'text-amber-400' : 'text-amber-600')} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-white">订阅管理</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">查看订阅状态、兑换码和历史记录</p>
+            </div>
+          </div>
+
+          <Link href="/settings/subscription">
+            <button className={clsx(
+              'w-full flex items-center justify-between py-3 px-4 rounded-xl',
+              'transition-all duration-300',
+              theme === 'dark'
+                ? 'hover:bg-slate-700/40 text-slate-300'
+                : 'hover:bg-slate-50 text-slate-600'
+            )}>
+              <div className="flex items-center gap-3">
+                <span className="font-medium">订阅详情</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </Link>
         </div>
 
         {/* Privacy & Account */}
