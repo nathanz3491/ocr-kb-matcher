@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAuth } from '@/contexts/AuthContext';
+import { PackSwitcher } from '@/components/dashboard/PackSwitcher';
 import { cn } from '@/lib/utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -192,7 +193,9 @@ export function Navigation() {
                 <Link href="/auth/register" onClick={() => setHeaderOpen(false)} className={cn('rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300', theme === 'dark' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500')}>Get Started</Link>
               </div>
             ) : (
-              <div className="relative shrink-0" ref={userMenuRef}>
+              <div className="flex items-center gap-3 shrink-0">
+                <PackSwitcher />
+                <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   onClick={() => { setUserMenuOpen(!userMenuOpen); }}
                   className={cn(
@@ -294,6 +297,7 @@ export function Navigation() {
                   )} />
                 </div>
               </div>
+            </div>
             )}
           </div>
 
