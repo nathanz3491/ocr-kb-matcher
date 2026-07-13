@@ -58,17 +58,19 @@ export function canStartTrial(email: string, fingerprint: string): boolean {
     .get(email, cutoff);
   if (recentByEmail) return false;
 
-  // Check active trial by fingerprint: expires_at > now
-  const activeByFingerprint = db
-    .prepare('SELECT 1 FROM trial_attempts WHERE device_fingerprint = ? AND expires_at > ? LIMIT 1')
-    .get(fingerprint, now);
-  if (activeByFingerprint) return false;
-
-  // Check recent trial by fingerprint: started_at within cooldown period
+  // Fingerprint here is only sha256(user-agent + accept-language) — far too
+  // coarse to block on (all users of a common browser/locale share one).
+  // Matches are logged as an abuse signal (see logAbuseAttempt) but must NOT
+  // block registration until a real client-side device fingerprint exists.
   const recentByFingerprint = db
-    .prepare('SELECT 1 FROM trial_attempts WHERE device_fingerprint = ? AND started_at > ? LIMIT 1')
-    .get(fingerprint, cutoff);
-  if (recentByFingerprint) return false;
+    .prepare('SELECT COUNT(*) AS cnt FROM trial_attempts WHERE device_fingerprint = ? AND started_at > ?')
+    .get(fingerprint, cutoff) as { cnt: number } | undefined;
+  if (recentByFingerprint && recentByFingerprint.cnt > 0) {
+    logger.info(
+      { email, fingerprint, matches: recentByFingerprint.cnt },
+      '[Trial] Fingerprint seen before (signal only, not blocking)',
+    );
+  }
 
   return true;
 }
