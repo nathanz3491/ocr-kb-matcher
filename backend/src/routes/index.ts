@@ -27,6 +27,7 @@ import authRoutes from './auth';
 import adminRoutes from './admin';
 import userSettingsRoutes from './userSettings';
 import parentMonitorRoutes from './parentMonitor';
+import accountRoutes from './account';
 
 const router = Router();
 
@@ -61,6 +62,7 @@ router.use('/api/auth', authRoutes);
 router.use('/api/admin', adminRoutes);
 router.use('/api/user', userSettingsRoutes);
 router.use('/api/parent-monitor', parentMonitorRoutes);
+router.use('/api/account', accountRoutes);
 
 /**
  * @route   GET /health
@@ -118,6 +120,7 @@ router.get(
         kb: '/api/kb',
         graphEditor: '/api/graph-editor',
         studyPlan: '/api/study-plan',
+        account: '/api/account',
         test: process.env.NODE_ENV === 'production' ? undefined : '/api/test',
       },
     });
