@@ -283,6 +283,9 @@ function generateOrganicLayout(nodes: KnowledgeNode[], edges: KnowledgeEdge[]) {
 interface LocalKnowledgeGraphProps {
   searchQuery?: string;
   onLoadingChange?: (isLoading: boolean) => void;
+  positionPickerMode?: boolean;
+  onPositionPick?: (x: number, y: number) => void;
+  onNodeDragStop?: (nodeId: string, x: number, y: number) => void;
 }
 
 export interface LocalKnowledgeGraphRef {

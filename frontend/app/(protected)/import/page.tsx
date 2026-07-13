@@ -61,6 +61,31 @@ const colorClasses: Record<string, { bg: string; text: string; border: string; h
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
+// Native fetch wrapper that attaches the JWT bearer token. Upload/stream
+// endpoints use raw fetch (FormData / streaming) and bypass the axios
+// interceptor, so auth must be injected here.
+const apiFetch = async (url: string, init: RequestInit = {}) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  // Raw fetch bypasses the axios 401/429 interceptor, so surface quota
+  // exhaustion here — this drives the QuotaExceededHandler upgrade toast.
+  if (res.status === 429 && typeof window !== 'undefined') {
+    try {
+      const body = await res.clone().json();
+      if (body?.error === 'QUOTA_EXCEEDED') {
+        window.dispatchEvent(new CustomEvent('app:quota-exceeded', { detail: body }));
+      }
+    } catch {}
+  }
+  return res;
+};
+
 // ---- Mode Selection ----
 function ModeSelector({ onSelect }: { onSelect: (mode: 'single' | 'multiple') => void }) {
   return (
@@ -259,7 +284,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'SINGLE' })
@@ -291,7 +316,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Text Import', jobType: 'SINGLE' })
@@ -352,7 +377,7 @@ function SingleModeForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'SINGLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: {
           'x-upload-multiple': isMultiple ? 'true' : 'false',
@@ -636,7 +661,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'MULTIPLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: {
           'x-upload-multiple': isMultiple ? 'true' : 'false',
@@ -674,7 +699,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'MULTIPLE' })
@@ -706,7 +731,7 @@ function MultipleModeForm({ onBack }: { onBack: () => void }) {
     setStatus('idle');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Text Import', jobType: 'MULTIPLE' })
@@ -1012,7 +1037,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     formData.append('jobType', 'WRONG_SINGLE');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: { 'x-upload-multiple': 'false' },
         body: formData,
@@ -1039,7 +1064,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'WRONG_SINGLE' })
@@ -1066,7 +1091,7 @@ function WrongSingleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Wrong Question Import', jobType: 'WRONG_SINGLE' })
@@ -1279,7 +1304,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     formData.append('wrongQuestionIndices', wrongQuestionIndices.trim());
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: { 'x-upload-multiple': 'false' },
         body: formData,
@@ -1307,7 +1332,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/url`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), jobType: 'WRONG_MULTIPLE', wrongQuestionIndices: wrongQuestionIndices.trim() })
@@ -1335,7 +1360,7 @@ function WrongMultipleForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setStatus('idle');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/text`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/upload/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: textContent.trim(), title: 'Wrong Questions Import', jobType: 'WRONG_MULTIPLE', wrongQuestionIndices: wrongQuestionIndices.trim() })

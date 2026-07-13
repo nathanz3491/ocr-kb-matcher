@@ -103,9 +103,13 @@ Your knowledge graph contains **${nodes}** nodes and **${edges}** connections. W
     setLoading(true);
 
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ message: userMessage, sessionId: activeSession }),
       });
 

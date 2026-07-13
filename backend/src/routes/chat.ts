@@ -338,9 +338,22 @@ router.get('/knowledge-context', async (req: Request, res: Response) => {
 
     const kgContext = await buildKnowledgeGraphContext(userId);
 
+    // Structured counts for the UI header (frontend reads totalNodes/totalEdges/categories).
+    const storage = getKnowledgeGraphStorage(userId);
+    await storage.initialize();
+    const graph = await storage.getGlobalGraph();
+    const categories = Array.from(
+      new Set(graph.nodes.map(n => n.data.category).filter((c): c is string => !!c)),
+    );
+
     res.json({
       success: true,
-      data: { context: kgContext },
+      data: {
+        context: kgContext,
+        totalNodes: graph.nodes.length,
+        totalEdges: graph.edges.length,
+        categories,
+      },
     });
   } catch (error) {
     console.error('Error getting knowledge context:', error);

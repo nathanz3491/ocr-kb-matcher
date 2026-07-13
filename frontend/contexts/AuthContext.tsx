@@ -54,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {}
     const token = authApi.getAccessToken();
     if (token) {
-      refreshUser();
+      refreshUser().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }

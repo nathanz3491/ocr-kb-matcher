@@ -207,6 +207,8 @@ router.post(
 
 router.post(
   '/single',
+  requireAuth,
+  enforceQuota('uploads'),
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user!.userId;
 
@@ -263,6 +265,8 @@ router.post(
 
 router.post(
   '/multiple',
+  requireAuth,
+  enforceQuota('uploads'),
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user!.userId;
 
@@ -327,6 +331,8 @@ router.post(
 
 router.post(
   '/text',
+  requireAuth,
+  enforceQuota('uploads'),
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user!.userId;
 
@@ -374,6 +380,8 @@ router.post(
 
 router.post(
   '/url',
+  requireAuth,
+  enforceQuota('uploads'),
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user!.userId;
 

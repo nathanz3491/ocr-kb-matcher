@@ -100,6 +100,7 @@ export default function AdaptiveQuizPage() {
 
   const startAdaptiveQuiz = async (count: number = 5) => {
     setStep('generating');
+    setError(null);
     try {
       const res = await axios.get<{ success: boolean; data: AdaptiveResponse }>(
         `${API_BASE_URL}/api/quiz/adaptive?count=${count}`
@@ -110,10 +111,19 @@ export default function AdaptiveQuizPage() {
         setQuestions(res.data.data.questions || []);
         setStep('quiz');
       } else {
-        setError('Failed to generate adaptive quiz');
+        setError('测验生成失败，请重试。');
+        setStep('targets');
       }
-    } catch {
-      setError('Failed to generate adaptive quiz. Please try again.');
+    } catch (err: unknown) {
+      // Surface quota exhaustion distinctly; always leave the spinner state.
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const data = axios.isAxiosError(err) ? err.response?.data : undefined;
+      if (status === 429) {
+        setError(data?.message || '本月测验生成额度已用完。升级套餐获取更多额度。');
+      } else {
+        setError('测验生成失败，请重试。');
+      }
+      setStep('targets');
     }
   };
 
@@ -325,7 +335,13 @@ export default function AdaptiveQuizPage() {
               </p>
             </div>
 
-            
+            {error && (
+              <div className="mb-6 mx-auto max-w-lg rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 text-center">
+                {error}
+              </div>
+            )}
+
+
             <div className="grid lg:grid-cols-2 gap-6 mb-8">
               
               <motion.div 

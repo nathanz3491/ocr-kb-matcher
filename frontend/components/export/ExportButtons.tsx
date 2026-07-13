@@ -6,6 +6,18 @@ import { LocalKnowledgeGraphRef } from '@/components/results/LocalKnowledgeGraph
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+// Attaches the JWT bearer token to raw fetch calls (these bypass the axios interceptor).
+const apiFetch = (url: string, init: RequestInit = {}) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+};
+
 interface ExportButtonsProps {
   graphRef?: RefObject<LocalKnowledgeGraphRef | null>;
 }
@@ -31,7 +43,7 @@ export function ExportButtons({ graphRef }: ExportButtonsProps) {
         }
       } else {
         // Fallback to backend API
-        const response = await fetch(`${API_BASE_URL}/api/export/graph-png`);
+        const response = await apiFetch(`${API_BASE_URL}/api/export/graph-png`);
         if (!response.ok) throw new Error('Export failed');
         
         const blob = await response.blob();
@@ -60,7 +72,7 @@ export function ExportButtons({ graphRef }: ExportButtonsProps) {
     try {
       const endpoint = `${API_BASE_URL}/api/export/progress-pdf`;
       
-      const response = await fetch(endpoint);
+      const response = await apiFetch(endpoint);
       if (!response.ok) throw new Error('Export failed');
       
       const blob = await response.blob();
@@ -101,7 +113,7 @@ export function ExportButtons({ graphRef }: ExportButtonsProps) {
     setExporting('ai');
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export/ai-text`);
+      const response = await apiFetch(`${API_BASE_URL}/api/export/ai-text`);
       if (!response.ok) throw new Error('Export failed');
       
       const text = await response.text();
