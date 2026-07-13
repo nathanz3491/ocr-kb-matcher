@@ -38,6 +38,7 @@ function rowToUser(row: Record<string, unknown>): User {
     updatedAt: row.updated_at as string,
     settings: typeof row.settings === 'string' ? JSON.parse(row.settings as string) : (row.settings || {}),
     tier: (row.tier as Tier) || undefined,
+    subscriptionStartedAt: row.subscription_started_at as string | undefined,
     subscriptionExpiresAt: row.subscription_expires_at as string | undefined,
     role: (row.role as UserRole) || undefined,
     usage: typeof row.usage === 'string' ? JSON.parse(row.usage as string) as Usage : undefined,
