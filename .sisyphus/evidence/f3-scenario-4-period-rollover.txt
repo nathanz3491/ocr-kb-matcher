@@ -1,0 +1,2 @@
+Quota after rollover: status=200, body={"success":true,"data":{"tier":"free","role":"user","usage":{"periodStart":"2026-07-01T00:00:00.000Z","uploads":0,"quizGenerated":0,"chatMessages":0},"limits":{"uploads":2,"quizGenerated":3,"chatMessages":20},"subscriptionStartedAt":null,"subscriptionExpiresAt":null,"resetsAt":"2026-08-01T00:00:00.000Z"}}
+Usage after rollover: {"periodStart":"2026-07-01T00:00:00.000Z","uploads":0,"quizGenerated":0,"chatMessages":0}

@@ -10,6 +10,7 @@ import {
   CheckCircle, ChevronRight
 } from 'lucide-react';
 import { Navigation } from '@/components/navigation/Navigation';
+import { UsageWidget } from '@/components/dashboard/UsageWidget';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
@@ -263,6 +264,9 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            {/* Usage Widget */}
+            <UsageWidget />
 
             {/* Quick Links Grid */}
             <div className="grid gap-6 lg:grid-cols-3">

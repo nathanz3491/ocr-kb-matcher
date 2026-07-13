@@ -1,0 +1,70 @@
+# Task 11 — Sentry Error Monitoring
+
+## Summary
+
+Sentry (`@sentry/node` v10.65.0) integrated into the backend for production error tracking.
+
+## Files Modified
+
+### 1. `backend/src/index.ts`
+- Added `import * as Sentry from '@sentry/node'`
+- Added Sentry init block BEFORE `app.listen()`:
+  ```typescript
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: 0.1,
+    });
+    logger.info('Sentry initialized');
+  }
+  ```
+- Guarded behind `process.env.SENTRY_DSN` — no-op when DSN not configured
+- `tracesSampleRate: 0.1` — 10% sampling (cost-efficient)
+
+### 2. `backend/src/middleware/errorHandler.ts`
+- Added `import * as Sentry from '@sentry/node'`
+- Added `Sentry.captureException(err)` in global error handler (4-arg Express error handler)
+- Added `Sentry.setUser({ id: req.user.userId })` when authenticated (`req.user?.userId` exists)
+- Placed after error classification, before log/response
+
+### 3. `backend/.env.example`
+- Added `SENTRY_DSN=` with comment `# Sentry Error Monitoring — get DSN from https://sentry.io (project settings)`
+- Value intentionally empty — real DSN goes in `.env` only
+
+### 4. `backend/src/middleware/auth.ts`
+- Added `tier?: string` to `AuthenticatedUser` interface (pre-existing type error fix)
+
+## Verification
+
+- `cd backend && npx tsc --noEmit` — PASS (exit code 0)
+- `backend/.env.example` — SENTRY_DSN present, empty value, not a secret
+- No Sentry DSN committed to any file
+
+## Runtime Test Status
+
+**Code verified, runtime test pending Sentry account setup.**
+
+To test end-to-end:
+1. Create a Sentry project at https://sentry.io
+2. Get the DSN from project settings
+3. Set `SENTRY_DSN=<dsn>` in `backend/.env`
+4. Restart backend: `npm run dev`
+5. Trigger a 500 error (e.g., by temporarily breaking a route)
+6. Check Sentry dashboard for the event within ~30s
+7. Verify event includes: stack trace, request URL, user ID (if authenticated)
+
+## Alert Configuration (Sentry UI)
+
+After DSN is active, configure in Sentry → Alerts:
+
+| Setting | Value |
+|---------|-------|
+| Trigger | 5xx error rate > 1% |
+| Evaluation window | 5 minutes |
+| Action | Email notification |
+| Action | Webhook → WeChat (configure via Sentry integration) |
+
+## Dependencies Added
+
+- `@sentry/node@10.65.0`

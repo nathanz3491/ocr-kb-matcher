@@ -1,0 +1,33 @@
+=== Evidence: Admin upgrades user tier (free → monthly) ===
+
+Request:
+  PATCH /api/admin/users/a561f262-6b08-4942-b553-86d8d11081d1/tier
+  Authorization: Bearer <admin-token>
+  Content-Type: application/json
+  Body: {"tier":"monthly","durationDays":30}
+
+Response:
+  HTTP 200 OK
+  {
+    "success": true,
+    "data": {
+      "id": "a561f262-6b08-4942-b553-86d8d11081d1",
+      "email": "newuser@test.com",
+      "name": "New User",
+      "tier": "monthly",
+      "role": "user",
+      "subscriptionStartedAt": null,
+      "subscriptionExpiresAt": "2026-08-10T14:05:27.044Z",
+      "usage": { ... },
+      "createdAt": "2026-07-11T12:48:12.651Z",
+      "updatedAt": "2026-07-11T14:05:27.045Z"
+    }
+  }
+
+Validation:
+  PASS — User tier changed from 'free' to 'monthly'.
+  subscriptionExpiresAt set to ~30 days from now (2026-08-10).
+  No passwordHash in response.
+  Note: subscriptionStartedAt is null because the backend User type
+  (backend/src/types/auth.ts) does not include this field. The
+  setUserTier service function only sets tier + subscriptionExpiresAt.

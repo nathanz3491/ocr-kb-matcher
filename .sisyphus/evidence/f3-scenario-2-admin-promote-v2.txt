@@ -1,0 +1,4 @@
+Admin login: OK
+PATCH /tier: status=200 body={"success":true,"data":{"id":"qa-free-001","email":"qa-free@qa.local","name":"QA Free User","tier":"monthly","role":"user","subscriptionStartedAt":null,"subscriptionExpiresAt":"2026-08-11T13:31:58.736Z","usage":{"periodStart":"2026-07-12T13:31:58.736Z","uploads":0,"quizGenerated":0,"chatMessages":0},"createdAt":"2026-07-11T14:49:19.706Z","updatedAt":"2026-07-12T13:31:58.736Z"}}
+DB after patch: {"tier":"monthly","subscription_expires_at":"2026-08-11T13:31:58.736Z"}
+Upload after admin promote: status=400 error=No file uploaded

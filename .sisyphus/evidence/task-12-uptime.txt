@@ -1,0 +1,30 @@
+Task 12 — UptimeRobot Monitoring
+===================================
+Date: 2026-07-12
+Plan: monetization-prep
+
+Status: DOCUMENTATION COMPLETE — MANUAL CONFIG REQUIRED
+-------------------------------------------------------
+
+Two health check endpoints are available and ready for monitoring:
+
+1. Backend: GET /health
+   - Returns HTTP 200 + JSON: { status: "ok", timestamp, service, version, environment }
+   - Mounted at Express root in routes/index.ts
+   - Does NOT require auth
+   - Response time: ~5-50ms (local), ~100-500ms (production behind reverse proxy)
+
+2. Frontend: GET /
+   - Returns HTTP 200 — Next.js rendered page
+   - Served by Next.js on port 3000 (production) or 3000 (dev)
+   - Does NOT require auth
+
+Manual Steps Required (user to complete):
+1. Sign up at https://uptimerobot.com (free tier)
+2. Add HTTP monitor for backend: https://<host>/health
+3. Add HTTP monitor for frontend: https://<host>/
+4. Configure alert contacts: email + optional WeChat webhook
+5. Verify both monitors show green UP status
+
+All documentation is in MONITORING.md (root of repository).
+No code changes were made — this is pure configuration.

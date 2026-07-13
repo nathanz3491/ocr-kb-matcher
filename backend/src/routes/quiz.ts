@@ -9,8 +9,12 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { generateQuiz, generateTopicQuiz, submitQuiz, getQuizSession, getQuizStats, generateAdaptiveQuiz } from '../services/quizService';
 import { userProgressService } from '../services/userProgressService';
 import { getKnowledgeGraph, InternalGraphNode } from '../services/knowledgeGraphStorage';
+import { aiLimiter } from '../middleware/rateLimit';
+import { requireAuth } from '../middleware/auth';
+import { enforceQuota } from '../middleware/quota';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * Calculate mastery increase based on quiz score
@@ -26,7 +30,7 @@ function calculateMasteryIncrease(score: number, totalQuestions: number): number
  * POST /api/quiz/generate/:jobId
  * Generate a new quiz from job content
  */
-router.post('/generate/:jobId', async (req, res) => {
+router.post('/generate/:jobId', aiLimiter, requireAuth, enforceQuota('quizGenerated'), async (req, res) => {
   try {
     const { jobId } = req.params;
     const session = await generateQuiz(jobId);
@@ -61,7 +65,7 @@ router.post('/generate/:jobId', async (req, res) => {
  * POST /api/quiz/topic/:topicId
  * Generate a quiz from a knowledge topic
  */
-router.post('/topic/:topicId', async (req, res) => {
+router.post('/topic/:topicId', requireAuth, enforceQuota('quizGenerated'), async (req, res) => {
   try {
     const { topicId } = req.params;
     const session = await generateTopicQuiz(topicId);
@@ -93,7 +97,7 @@ router.post('/topic/:topicId', async (req, res) => {
   }
 });
 
-router.get('/adaptive', authenticate, asyncHandler(async (req, res) => {
+router.get('/adaptive', authenticate, requireAuth, enforceQuota('quizGenerated'), asyncHandler(async (req, res) => {
   try {
     const userId = req.user?.userId;
     const count = parseInt(req.query.count as string, 10) || 5;

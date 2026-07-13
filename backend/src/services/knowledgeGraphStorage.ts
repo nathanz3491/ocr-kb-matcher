@@ -1,49 +1,31 @@
 /**
- * Knowledge Graph Storage Service - JSON-based Implementation
- * 
- * Persistent storage service for the global knowledge graph.
- * Uses local JSON file for storage instead of Neo4j.
- * Supports per-user isolation via userId parameter.
+ * Knowledge Graph Storage Service - SQLite-based Implementation
+ *
+ * Per-user isolation via userId column. Atomic writes via SQLite transactions.
  */
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import path from 'path';
+import fs from 'fs';
 import { GraphData, GraphNode, GraphEdge, NodeType } from '../../../shared/types';
 import { userProgressService } from './userProgressService';
+import { getDb } from '../db/sqlite';
 
-// Data directory - use process.cwd() which points to backend folder in dev
 const DATA_DIR = path.join(process.cwd(), 'data');
 
-/**
- * Get the graph file path for a given userId
- * Returns knowledge-graph-{userId}.json for defined userId, or knowledge-graph.json for undefined (backward compat)
- */
-function getGraphFile(userId?: string): string {
-  if (userId) {
-    return path.join(DATA_DIR, `knowledge-graph-${userId}.json`);
-  }
-  return path.join(DATA_DIR, 'knowledge-graph.json');
-}
-
-/**
- * Internal representation of a knowledge graph node
- * This has the flat structure with name, domain, prerequisites directly on the node
- */
 export interface InternalGraphNode {
   id: string;
   name: string;
   domain: string;
-  description?: string;  // Detailed description for AI matching, quiz generation, etc.
+  description?: string;
   prerequisites: string[];
   nextSteps: string[];
   x?: number;
   y?: number;
   sources?: string[];
+  unit?: string;
+  timePeriod?: string;
 }
 
-/**
- * Internal representation of a knowledge graph edge
- */
 export interface InternalGraphEdge {
   id: string;
   source: string;
@@ -52,9 +34,6 @@ export interface InternalGraphEdge {
   sources?: string[];
 }
 
-/**
- * Stored knowledge graph structure with metadata and source tracking
- */
 export interface StoredKnowledgeGraph {
   version: number;
   lastUpdated: string;
@@ -69,10 +48,6 @@ export interface StoredKnowledgeGraph {
   };
 }
 
-/**
- * KnowledgeGraphNode type for internal use
- * Exported for compatibility with code that expects this type name
- */
 export interface KnowledgeGraphNode {
   id: string;
   name: string;
@@ -83,9 +58,6 @@ export interface KnowledgeGraphNode {
   y?: number;
 }
 
-/**
- * Result of merging a job graph into the global knowledge graph
- */
 export interface MergeResult {
   nodesAdded: number;
   nodesMerged: number;
@@ -94,9 +66,6 @@ export interface MergeResult {
   newNodeIds: string[];
 }
 
-/**
- * Convert internal node to GraphNode for visualization
- */
 function toGraphNode(internal: InternalGraphNode): GraphNode {
   return {
     id: internal.id,
@@ -111,9 +80,6 @@ function toGraphNode(internal: InternalGraphNode): GraphNode {
   };
 }
 
-/**
- * Convert internal edge to GraphEdge for visualization
- */
 function toGraphEdge(internal: InternalGraphEdge): GraphEdge {
   return {
     id: internal.id,
@@ -123,118 +89,144 @@ function toGraphEdge(internal: InternalGraphEdge): GraphEdge {
   };
 }
 
-/**
- * Storage service for persistent knowledge graph
- * Supports per-user isolation via userId constructor parameter
- */
+function rowToNode(row: Record<string, unknown>): InternalGraphNode {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    domain: row.domain as string,
+    description: row.description as string | undefined,
+    prerequisites: typeof row.prerequisites === 'string' ? JSON.parse(row.prerequisites as string) : [],
+    nextSteps: typeof row.next_steps === 'string' ? JSON.parse(row.next_steps as string) : [],
+    x: row.x != null ? Number(row.x) : undefined,
+    y: row.y != null ? Number(row.y) : undefined,
+    sources: typeof row.sources === 'string' ? JSON.parse(row.sources as string) : undefined,
+    unit: row.unit as string | undefined,
+    timePeriod: row.time_period as string | undefined,
+  };
+}
+
+function rowToEdge(row: Record<string, unknown>): InternalGraphEdge {
+  return {
+    id: row.id as string,
+    source: row.source as string,
+    target: row.target as string,
+    label: row.label as string | undefined,
+    sources: typeof row.sources === 'string' ? JSON.parse(row.sources as string) : undefined,
+  };
+}
+
 export class KnowledgeGraphStorage {
   private initialized = false;
-  private userId?: string;
+  private userId: string;
 
   constructor(userId?: string) {
-    this.userId = userId;
+    this.userId = userId || '__global__';
   }
 
-  /**
-   * Initialize the storage - loads or creates default graph
-   */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
-    try {
-      // Create data directory if it doesn't exist
-      await fs.mkdir(DATA_DIR, { recursive: true });
-      
-      // Try to load existing graph
-      await this.loadGraph();
-      this.initialized = true;
-      console.log(`[KnowledgeGraphStorage] Initialized successfully for userId: ${this.userId || 'global'}`);
-    } catch (error) {
-      console.error('[KnowledgeGraphStorage] Failed to initialize:', error);
-      throw error;
-    }
+    getDb();
+    this.initialized = true;
   }
 
-  /**
-   * Loads the knowledge graph from disk with caching
-   */
   async loadGraph(): Promise<StoredKnowledgeGraph> {
-    const graphFile = getGraphFile(this.userId);
-    try {
-      await fs.access(graphFile);
-      const data = await fs.readFile(graphFile, 'utf-8');
-      const graph: StoredKnowledgeGraph = JSON.parse(data);
-      
-      // Validate graph structure
-      if (!this.isValidGraph(graph)) {
-        console.warn('[KnowledgeGraphStorage] Invalid graph structure, creating new graph');
-        return this.createDefaultGraph();
-      }
-      
-      return graph;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.log(`[KnowledgeGraphStorage] No existing graph found for userId: ${this.userId || 'global'}, creating default graph`);
-      } else {
-        console.warn('[KnowledgeGraphStorage] Error loading graph:', error);
-      }
+    const db = getDb();
+    const nodes = db.prepare('SELECT * FROM graph_nodes WHERE user_id = ?').all(this.userId) as Record<string, unknown>[];
+    const edges = db.prepare('SELECT * FROM graph_edges WHERE user_id = ?').all(this.userId) as Record<string, unknown>[];
+    const meta = db.prepare('SELECT * FROM graph_metadata WHERE user_id = ?').get(this.userId) as Record<string, unknown> | undefined;
+
+    if (nodes.length === 0 && edges.length === 0 && !meta) {
       const defaultGraph = this.createDefaultGraph();
       await this.saveGraph(defaultGraph);
       return defaultGraph;
     }
-  }
 
-  /**
-   * Saves the knowledge graph to disk atomically
-   */
-  async saveGraph(graph: StoredKnowledgeGraph): Promise<void> {
-    const graphFile = getGraphFile(this.userId);
-    try {
-      // Update metadata
-      graph.lastUpdated = new Date().toISOString();
-      
-      // Create backup of existing file if it exists
-      const backupPath = `${graphFile}.backup`;
-      try {
-        await fs.access(graphFile);
-        await fs.copyFile(graphFile, backupPath);
-      } catch {
-        // No existing file to backup
-      }
-      
-      // Write to temporary file first (atomic write)
-      const tempPath = `${graphFile}.tmp`;
-      await fs.writeFile(tempPath, JSON.stringify(graph, null, 2), 'utf-8');
-      
-      // Rename temp file to actual file (atomic operation)
-      await fs.rename(tempPath, graphFile);
-      
-      // Remove backup after successful write
-      try {
-        await fs.unlink(backupPath);
-      } catch {
-        // Backup might not exist
-      }
-    } catch (error) {
-      console.error('[KnowledgeGraphStorage] Failed to save graph:', error);
-      
-      // Try to restore from backup
-      const backupPath = `${graphFile}.backup`;
-      try {
-        await fs.access(backupPath);
-        await fs.copyFile(backupPath, graphFile);
-        console.log('[KnowledgeGraphStorage] Restored from backup');
-      } catch {
-        // No backup available
-      }
-      
-      throw error;
+    const nodeMap: Record<string, InternalGraphNode> = {};
+    for (const n of nodes) {
+      nodeMap[n.id as string] = rowToNode(n);
     }
+
+    const edgeMap: Record<string, InternalGraphEdge> = {};
+    for (const e of edges) {
+      edgeMap[e.id as string] = rowToEdge(e);
+    }
+
+    return {
+      version: meta ? (meta.version as number) : 1,
+      lastUpdated: meta ? (meta.last_updated as string) : new Date().toISOString(),
+      nodes: nodeMap,
+      edges: edgeMap,
+      jobContributions: meta && meta.job_contributions ? JSON.parse(meta.job_contributions as string) : {},
+      statistics: meta && meta.statistics ? JSON.parse(meta.statistics as string) : this.createDefaultGraph().statistics,
+    };
   }
 
-  /**
-   * Merges a job graph into the global knowledge graph
-   */
+  async saveGraph(graph: StoredKnowledgeGraph): Promise<void> {
+    const db = getDb();
+    const lastUpdated = new Date().toISOString();
+
+    const insertNode = db.prepare(`
+      INSERT OR REPLACE INTO graph_nodes
+        (id, user_id, name, domain, description, prerequisites, next_steps, x, y, sources, unit, time_period)
+      VALUES
+        (@id, @user_id, @name, @domain, @description, @prerequisites, @next_steps, @x, @y, @sources, @unit, @time_period)
+    `);
+
+    const insertEdge = db.prepare(`
+      INSERT OR REPLACE INTO graph_edges
+        (id, user_id, source, target, label, sources)
+      VALUES
+        (@id, @user_id, @source, @target, @label, @sources)
+    `);
+
+    const upsertMeta = db.prepare(`
+      INSERT OR REPLACE INTO graph_metadata
+        (user_id, version, last_updated, statistics, job_contributions)
+      VALUES
+        (@user_id, @version, @last_updated, @statistics, @job_contributions)
+    `);
+
+    const tx = db.transaction(() => {
+      for (const node of Object.values(graph.nodes)) {
+        insertNode.run({
+          id: node.id,
+          user_id: this.userId,
+          name: node.name,
+          domain: node.domain,
+          description: node.description ?? null,
+          prerequisites: JSON.stringify(node.prerequisites),
+          next_steps: JSON.stringify(node.nextSteps),
+          x: node.x ?? null,
+          y: node.y ?? null,
+          sources: JSON.stringify(node.sources || []),
+          unit: node.unit ?? null,
+          time_period: node.timePeriod ?? null,
+        });
+      }
+
+      for (const edge of Object.values(graph.edges)) {
+        insertEdge.run({
+          id: edge.id,
+          user_id: this.userId,
+          source: edge.source,
+          target: edge.target,
+          label: edge.label ?? null,
+          sources: JSON.stringify(edge.sources || []),
+        });
+      }
+
+      upsertMeta.run({
+        user_id: this.userId,
+        version: graph.version,
+        last_updated: lastUpdated,
+        statistics: JSON.stringify(graph.statistics),
+        job_contributions: JSON.stringify(graph.jobContributions),
+      });
+    });
+
+    tx();
+  }
+
   async mergeJobGraph(jobId: string, jobGraph: GraphData): Promise<MergeResult> {
     const graph = await this.loadGraph();
     const result: MergeResult = {
@@ -244,9 +236,9 @@ export class KnowledgeGraphStorage {
       edgesMerged: 0,
       newNodeIds: []
     };
-    
+
     const contributedNodeIds: string[] = [];
-    
+
     const existingNodes = Object.values(graph.nodes);
     let maxX = -Infinity, maxY = -Infinity;
     for (const n of existingNodes) {
@@ -254,13 +246,13 @@ export class KnowledgeGraphStorage {
       if (n.y !== undefined && n.y > maxY) maxY = n.y;
     }
     const nextRowY = (isFinite(maxY) ? maxY : 0) + 300;
-    
+
     const COLS = 4;
     const SPACING_X = 280;
     const SPACING_Y = 180;
-    
+
     let autoLayoutIdx = 0;
-    
+
     for (const node of jobGraph.nodes) {
       let x = node.position.x;
       let y = node.position.y;
@@ -271,7 +263,7 @@ export class KnowledgeGraphStorage {
       }
 
       const existingNodeId = this.findDuplicateNode(graph, node);
-      
+
       if (existingNodeId) {
         const existingNode = graph.nodes[existingNodeId];
         if (existingNode.sources && !existingNode.sources.includes(jobId)) {
@@ -298,16 +290,11 @@ export class KnowledgeGraphStorage {
         contributedNodeIds.push(node.id);
       }
     }
-    
-    if (autoLayoutIdx > 0) {
-      console.log(`[KnowledgeGraphStorage] Auto-layout applied to ${autoLayoutIdx} nodes (placed below existing graph)`);
-    }
-    
+
     for (const edge of jobGraph.edges) {
       const existingEdgeId = this.findDuplicateEdge(graph, edge);
-      
+
       if (existingEdgeId) {
-        // Edge already exists, merge sources
         const existingEdge = graph.edges[existingEdgeId];
         if (existingEdge.sources && !existingEdge.sources.includes(jobId)) {
           existingEdge.sources.push(jobId);
@@ -316,7 +303,6 @@ export class KnowledgeGraphStorage {
         }
         result.edgesMerged++;
       } else {
-        // New edge, add to graph
         const newEdge: InternalGraphEdge = {
           id: edge.id,
           source: edge.source,
@@ -328,64 +314,37 @@ export class KnowledgeGraphStorage {
         result.edgesAdded++;
       }
     }
-    
-    // Update job contributions
+
     graph.jobContributions[jobId] = contributedNodeIds;
-    
-    // Update statistics
     this.updateStatistics(graph);
-    
-    // Save updated graph
     await this.saveGraph(graph);
-    
-    console.log(
-      `[KnowledgeGraphStorage] Merged job ${jobId} for userId ${this.userId || 'global'}: +${result.nodesAdded} nodes, +${result.edgesAdded} edges`
-    );
-    
+
     return result;
   }
 
-  /**
-   * Gets the global knowledge graph as GraphData (for visualization)
-   */
   async getGlobalGraph(): Promise<GraphData> {
     const graph = await this.loadGraph();
-    
     return {
       nodes: Object.values(graph.nodes).map(toGraphNode),
       edges: Object.values(graph.edges).map(toGraphEdge)
     };
   }
 
-  /**
-   * Gets the global knowledge graph with internal node structure
-   * (for backward compatibility with code expecting name, domain, prerequisites directly)
-   */
   async getGlobalGraphInternal(): Promise<StoredKnowledgeGraph> {
     return this.loadGraph();
   }
 
-  /**
-   * Gets the nodes and edges contributed by a specific job
-   */
   async getJobContribution(jobId: string): Promise<GraphData | null> {
     const graph = await this.loadGraph();
-    
     const nodeIds = graph.jobContributions[jobId];
-    if (!nodeIds || nodeIds.length === 0) {
-      return null;
-    }
-    
-    // Get nodes contributed by this job
+    if (!nodeIds || nodeIds.length === 0) return null;
+
     const nodes: GraphNode[] = [];
     for (const nodeId of nodeIds) {
       const node = graph.nodes[nodeId];
-      if (node) {
-        nodes.push(toGraphNode(node));
-      }
+      if (node) nodes.push(toGraphNode(node));
     }
-    
-    // Get edges where both source and target nodes are in the contribution
+
     const nodeIdSet = new Set(nodeIds);
     const edges: GraphEdge[] = [];
     for (const edge of Object.values(graph.edges)) {
@@ -393,73 +352,45 @@ export class KnowledgeGraphStorage {
         edges.push(toGraphEdge(edge));
       }
     }
-    
+
     return { nodes, edges };
   }
 
-  /**
-   * Gets current statistics of the knowledge graph
-   */
   async getStatistics(): Promise<StoredKnowledgeGraph['statistics']> {
     const graph = await this.loadGraph();
     return { ...graph.statistics };
   }
 
-  /**
-   * Removes all contributions from a specific job
-   */
   async removeJobContribution(jobId: string): Promise<void> {
     const graph = await this.loadGraph();
-    
     const nodeIds = graph.jobContributions[jobId];
-    if (!nodeIds || nodeIds.length === 0) {
-      console.log(`[KnowledgeGraphStorage] No contributions found for job ${jobId}`);
-      return;
-    }
-    
-    // Remove nodes that were contributed only by this job
+    if (!nodeIds || nodeIds.length === 0) return;
+
     for (const nodeId of nodeIds) {
       const node = graph.nodes[nodeId];
       if (node && node.sources) {
-        // Remove this job from sources
         node.sources = node.sources.filter(id => id !== jobId);
-        
-        // If no other sources, remove the node entirely
         if (node.sources.length === 0) {
           delete graph.nodes[nodeId];
         }
       }
     }
-    
-    // Remove edges that were contributed only by this job
+
     for (const edgeId of Object.keys(graph.edges)) {
       const edge = graph.edges[edgeId];
       if (edge.sources && edge.sources.includes(jobId)) {
-        // Remove this job from sources
         edge.sources = edge.sources.filter(id => id !== jobId);
-        
-        // If no other sources, remove the edge entirely
         if (edge.sources.length === 0) {
           delete graph.edges[edgeId];
         }
       }
     }
-    
-    // Remove job contribution record
+
     delete graph.jobContributions[jobId];
-    
-    // Update statistics
     this.updateStatistics(graph);
-    
-    // Save updated graph
     await this.saveGraph(graph);
-    
-    console.log(`[KnowledgeGraphStorage] Removed contributions from job ${jobId} for userId ${this.userId || 'global'}`);
   }
 
-  /**
-   * Creates an empty knowledge graph structure
-   */
   private createEmptyGraph(): StoredKnowledgeGraph {
     return {
       version: 1,
@@ -471,19 +402,11 @@ export class KnowledgeGraphStorage {
         totalJobs: 0,
         totalNodes: 0,
         totalEdges: 0,
-        nodeTypeDistribution: {
-          concept: 0,
-          entity: 0,
-          process: 0
-        }
+        nodeTypeDistribution: { concept: 0, entity: 0, process: 0 }
       }
     };
   }
 
-  /**
-   * Creates empty knowledge graph
-   * Data is loaded from JSON file on disk
-   */
   private createDefaultGraph(): StoredKnowledgeGraph {
     return {
       version: 1,
@@ -495,21 +418,13 @@ export class KnowledgeGraphStorage {
         totalJobs: 0,
         totalNodes: 0,
         totalEdges: 0,
-        nodeTypeDistribution: {
-          concept: 0,
-          entity: 0,
-          process: 0
-        }
+        nodeTypeDistribution: { concept: 0, entity: 0, process: 0 }
       }
     };
   }
 
-  /**
-   * Validates the structure of a stored graph
-   */
   private isValidGraph(graph: unknown): graph is StoredKnowledgeGraph {
     if (!graph || typeof graph !== 'object') return false;
-    
     const g = graph as Partial<StoredKnowledgeGraph>;
     return (
       typeof g.version === 'number' &&
@@ -521,13 +436,7 @@ export class KnowledgeGraphStorage {
     );
   }
 
-  /**
-   * Finds a duplicate node by label and type
-   */
-  private findDuplicateNode(
-    graph: StoredKnowledgeGraph,
-    node: GraphNode
-  ): string | null {
+  private findDuplicateNode(graph: StoredKnowledgeGraph, node: GraphNode): string | null {
     for (const [id, existingNode] of Object.entries(graph.nodes)) {
       if (
         existingNode.name === node.data.label &&
@@ -539,13 +448,7 @@ export class KnowledgeGraphStorage {
     return null;
   }
 
-  /**
-   * Finds a duplicate edge by source, target, and label
-   */
-  private findDuplicateEdge(
-    graph: StoredKnowledgeGraph,
-    edge: GraphEdge
-  ): string | null {
+  private findDuplicateEdge(graph: StoredKnowledgeGraph, edge: GraphEdge): string | null {
     for (const [id, existingEdge] of Object.entries(graph.edges)) {
       if (
         existingEdge.source === edge.source &&
@@ -558,17 +461,13 @@ export class KnowledgeGraphStorage {
     return null;
   }
 
-  /**
-   * Updates statistics based on current graph state
-   */
   private updateStatistics(graph: StoredKnowledgeGraph): void {
     const nodeDomains = Object.values(graph.nodes).map(n => n.domain);
     const distribution: Record<string, number> = {};
-    
     for (const domain of nodeDomains) {
       distribution[domain] = (distribution[domain] || 0) + 1;
     }
-    
+
     graph.statistics = {
       totalJobs: Object.keys(graph.jobContributions).length,
       totalNodes: Object.keys(graph.nodes).length,
@@ -582,13 +481,8 @@ export class KnowledgeGraphStorage {
   }
 }
 
-// Cache of KnowledgeGraphStorage instances per userId
 const storageCache: Map<string, KnowledgeGraphStorage> = new Map();
 
-/**
- * Gets or creates a KnowledgeGraphStorage instance for the given userId
- * Uses a cache to avoid creating multiple instances for the same userId
- */
 export function getKnowledgeGraphStorage(userId?: string): KnowledgeGraphStorage {
   const cacheKey = userId || '__global__';
   if (!storageCache.has(cacheKey)) {
@@ -597,19 +491,14 @@ export function getKnowledgeGraphStorage(userId?: string): KnowledgeGraphStorage
   return storageCache.get(cacheKey)!;
 }
 
-/**
- * Get the global knowledge graph
- * Returns internal node structure for backward compatibility
- * Note: The returned nodes have name, domain, prerequisites directly (not nested in data)
- */
-export async function getKnowledgeGraph(userId?: string): Promise<{ 
-  nodes: InternalGraphNode[]; 
+export async function getKnowledgeGraph(userId?: string): Promise<{
+  nodes: InternalGraphNode[];
   edges: InternalGraphEdge[];
 }> {
   const storage = getKnowledgeGraphStorage(userId);
   await storage.initialize();
   const graph = await storage.getGlobalGraphInternal();
-  
+
   const rawNodes = Object.values(graph.nodes);
   const rawEdges = Object.values(graph.edges);
 
@@ -624,18 +513,12 @@ export async function getKnowledgeGraph(userId?: string): Promise<{
     }));
     const nodeIdSet = new Set(nodesWithLayout.map(n => n.id));
     const validEdges = rawEdges.filter(e => nodeIdSet.has(e.source) && nodeIdSet.has(e.target));
-    return {
-      nodes: nodesWithLayout,
-      edges: validEdges,
-    };
+    return { nodes: nodesWithLayout, edges: validEdges };
   }
-  
+
   const nodeIdSet = new Set(rawNodes.map(n => n.id));
   const validEdges = rawEdges.filter(e => nodeIdSet.has(e.source) && nodeIdSet.has(e.target));
-  return {
-    nodes: rawNodes,
-    edges: validEdges,
-  };
+  return { nodes: rawNodes, edges: validEdges };
 }
 
 export interface ViewportBounds {
@@ -645,10 +528,6 @@ export interface ViewportBounds {
   height: number;
 }
 
-/**
- * Get nodes and edges within a viewport bounds
- * Used for culling - only returns visible elements
- */
 export async function getKnowledgeGraphByViewport(bounds: ViewportBounds, userId?: string): Promise<{
   nodes: InternalGraphNode[];
   edges: InternalGraphEdge[];
@@ -658,27 +537,26 @@ export async function getKnowledgeGraphByViewport(bounds: ViewportBounds, userId
   const storage = getKnowledgeGraphStorage(userId);
   await storage.initialize();
   const graph = await storage.getGlobalGraphInternal();
-  
+
   const allNodes = Object.values(graph.nodes);
   const allEdges = Object.values(graph.edges);
-  
+
   const x1 = bounds.x;
   const y1 = bounds.y;
   const x2 = bounds.x + bounds.width;
   const y2 = bounds.y + bounds.height;
-  
+
   const visibleNodes = allNodes.filter(node => {
     const nx = node.x ?? 0;
     const ny = node.y ?? 0;
     return nx >= x1 && nx <= x2 && ny >= y1 && ny <= y2;
   });
-  
+
   const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
-  
-  const visibleEdges = allEdges.filter(edge => 
+  const visibleEdges = allEdges.filter(edge =>
     visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
   );
-  
+
   return {
     nodes: visibleNodes,
     edges: visibleEdges,
@@ -687,39 +565,80 @@ export async function getKnowledgeGraphByViewport(bounds: ViewportBounds, userId
   };
 }
 
-/**
- * Resets all storage instances (useful for testing)
- */
 export function resetStorageInstance(): void {
   storageCache.clear();
 }
 
-/**
- * Copies the default knowledge graph to a new user's personal graph file.
- * Reads knowledge-graph-default.json, deep-copies nodes/edges/statistics (stripping jobContributions),
- * resets totalJobs to 0, and saves to knowledge-graph-{userId}.json atomically.
- */
 export async function copyDefaultGraphToUser(userId: string): Promise<void> {
-  const defaultFile = path.join(DATA_DIR, 'knowledge-graph-default.json');
-  const userGraphFile = path.join(DATA_DIR, `knowledge-graph-${userId}.json`);
+  const db = getDb();
+  const defaultUserId = '__global__';
+  const defaultMeta = db.prepare('SELECT * FROM graph_metadata WHERE user_id = ?').get(defaultUserId) as Record<string, unknown> | undefined;
+  const defaultNodes = db.prepare('SELECT * FROM graph_nodes WHERE user_id = ?').all(defaultUserId) as Record<string, unknown>[];
+  const defaultEdges = db.prepare('SELECT * FROM graph_edges WHERE user_id = ?').all(defaultUserId) as Record<string, unknown>[];
 
-  const data = await fs.readFile(defaultFile, 'utf-8');
-  const graph: StoredKnowledgeGraph = JSON.parse(data);
+  const insertNode = db.prepare(`
+    INSERT OR IGNORE INTO graph_nodes
+      (id, user_id, name, domain, description, prerequisites, next_steps, x, y, sources, unit, time_period)
+    VALUES
+      (@id, @user_id, @name, @domain, @description, @prerequisites, @next_steps, @x, @y, @sources, @unit, @time_period)
+  `);
 
-  const userGraph: StoredKnowledgeGraph = {
-    ...graph,
-    nodes: { ...graph.nodes },
-    edges: { ...graph.edges },
-    jobContributions: {},
-    statistics: {
-      ...graph.statistics,
-      totalJobs: 0,
-    },
-  };
+  const insertEdge = db.prepare(`
+    INSERT OR IGNORE INTO graph_edges
+      (id, user_id, source, target, label, sources)
+    VALUES
+      (@id, @user_id, @source, @target, @label, @sources)
+  `);
 
-  const tempPath = `${userGraphFile}.tmp`;
-  await fs.writeFile(tempPath, JSON.stringify(userGraph, null, 2), 'utf-8');
-  await fs.rename(tempPath, userGraphFile);
+  const tx = db.transaction(() => {
+    for (const node of defaultNodes) {
+      insertNode.run({
+        id: node.id,
+        user_id: userId,
+        name: node.name,
+        domain: node.domain,
+        description: node.description ?? null,
+        prerequisites: node.prerequisites,
+        next_steps: node.next_steps,
+        x: node.x ?? null,
+        y: node.y ?? null,
+        sources: node.sources,
+        unit: node.unit ?? null,
+        time_period: node.time_period ?? null,
+      });
+    }
 
-  console.log(`[KnowledgeGraphStorage] Copied default graph to user ${userId}`);
+    for (const edge of defaultEdges) {
+      insertEdge.run({
+        id: edge.id,
+        user_id: userId,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label ?? null,
+        sources: edge.sources,
+      });
+    }
+
+    if (defaultMeta) {
+      const stats = typeof defaultMeta.statistics === 'string'
+        ? JSON.parse(defaultMeta.statistics as string)
+        : { totalJobs: 0, totalNodes: 0, totalEdges: 0, nodeTypeDistribution: { concept: 0, entity: 0, process: 0 } };
+      stats.totalJobs = 0;
+
+      db.prepare(`
+        INSERT OR REPLACE INTO graph_metadata
+          (user_id, version, last_updated, statistics, job_contributions)
+        VALUES
+          (@user_id, @version, @last_updated, @statistics, @job_contributions)
+      `).run({
+        user_id: userId,
+        version: defaultMeta.version ?? 1,
+        last_updated: new Date().toISOString(),
+        statistics: JSON.stringify(stats),
+        job_contributions: '{}',
+      });
+    }
+  });
+
+  tx();
 }

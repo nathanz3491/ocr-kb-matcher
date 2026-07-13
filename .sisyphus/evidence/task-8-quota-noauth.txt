@@ -1,0 +1,12 @@
+=== Test: GET /api/user/quota without auth ===
+Date: 2026-07-11
+
+Command:
+curl -s http://localhost:3001/api/user/quota
+
+Response (401):
+{"success":false,"error":"No authorization header provided"}
+
+Assertions:
+- status === 401 ✓
+- error message indicates missing auth ✓

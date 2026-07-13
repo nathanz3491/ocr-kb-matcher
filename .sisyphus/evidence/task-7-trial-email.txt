@@ -1,0 +1,37 @@
+Task 7 — Free trial abuse prevention: Email-based blocking
+
+=== TEST 1: Email-based blocking ===
+
+Setup: Inserted trial_attempts record for test-evidence-email@example.com
+  with device_fingerprint=de79c7eae2e33550acab5ec3812a03dd5d1681d4e8406886b9bd4eaebdf3bbd4
+
+Check: Same email + same fingerprint → active trial check
+  Result: true (blocked as expected)
+
+Check: Same email + same fingerprint → recent trial check (90-day cooldown)
+  Result: true (blocked as expected)
+
+Check: Same email + different fingerprint (de79c7ea... vs 85f9c058...) → active trial check
+  Result: true (blocked by email, as expected)
+
+Check: Clean email + clean fingerprint → can start
+  Result: true (allowed as expected)
+
+=== TEST 3: Cooldown elapsed (>90 days) ===
+
+Setup: Inserted trial_attempts for test-old-trial@example.com
+  started_at = 100 days ago (2026-04-03), expired 93 days ago
+
+Check: Active trial (expires_at > now)
+  Result: false (expired, as expected)
+
+Check: Recent trial (started_at within 90 days)
+  Result: false (outside cooldown, as expected)
+
+Check: Can start new trial
+  Result: true (allowed as expected)
+
+=== CONCLUSION ===
+Email-based trial abuse prevention works correctly:
+- Same email blocked regardless of fingerprint
+- Old expired trials (>90 days) do not block new trials

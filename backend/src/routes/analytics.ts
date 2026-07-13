@@ -6,6 +6,7 @@ import { getTimeline, getWeeklyStats } from '../services/timelineService';
 import { analyzeSkillGaps } from '../services/gapAnalysisService';
 
 const router = Router();
+router.use(authenticate);
 
 router.get('/dashboard', authenticate, asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;

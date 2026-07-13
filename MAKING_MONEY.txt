@@ -1,0 +1,36 @@
+Good — "lean side income, audience TBD" is actually the easiest combination to plan for, because it means you don't need a sales team, an enterprise sales cycle, or funding. Here's a realistic path grounded in what's actually in your codebase.
+
+## Pick your wedge fast, cheaply
+You've already half-built three different products in one app — individual study tool, teacher/classroom game mode, and parent-monitoring dashboard. For a lean side project, trying to serve all three at once will kill you on support and positioning. Pick one to lead with, and you've actually got a clue already sitting in your data: the Chinese-language OCR support and Chinese history content (Zhou dynasty, Spring and Autumn Period) suggests you built/tested this around a specific curriculum. That's a stronger starting wedge than "study app for everyone" — a narrow, underserved niche (e.g., bilingual/international students studying Chinese curriculum subjects, or IB/A-level history) beats competing head-on with Quizlet/Anki/Notion AI for a generic audience.
+
+Cheap way to decide without guessing: post a 30-second demo video (upload → graph → flashcards is genuinely satisfying to watch) in 2-3 relevant subreddits or Discords, one framed for students, one for the niche curriculum angle. Whichever gets more "I'd pay for this" comments is your answer. Don't build anything new before doing this.
+
+## What "lean" means for monetizing *this* app specifically
+Before charging anyone money, a few things in the current build are real risk, not nice-to-haves:
+
+- **JSON file storage isn't concurrency-safe** — your own `AGENTS.md` flags this. Fine for one user (you); will corrupt data with real concurrent users. This is the one item I'd actually block launch on — move to Postgres/SQLite before taking payments, or you will lose paying customers' data.
+- **AI cost control** — every upload costs you a Moonshot API call. Right now there's no visible per-user quota. Before charging, add usage limits per tier or you can lose money on your most active (free) users.
+- **The parent-monitoring feature is a liability if minors are involved** — tracking a child's data brings you into COPPA (US) / PIPL (China) / GDPR-K (EU) territory depending on where users are. That's real compliance work, not a side-project afterthought. My honest suggestion: keep that feature off/private until you've validated the core product, or talk to a lawyer before marketing "watch your kid's progress" to parents. (I'm not a lawyer — this is just a flag worth taking seriously, not legal advice.)
+- Everything else (game mode, study planner, wrong-question review) — mothball for launch. Fewer features = less support burden = actually lean.
+
+## Monetization model that fits "lean"
+For a bootstrapped app with real per-use AI costs, two models work well and are simple to implement with Stripe:
+- **Freemium subscription** — free tier (e.g., 5 uploads/month), paid tier ($5-10/mo) unlimited or higher cap. Simple, predictable, low support overhead.
+- **Credit packs (pay-as-you-go)** — buy a pack of upload/matching credits. Ties revenue directly to your AI cost, no subscription commitment friction — often converts better with students who don't want recurring charges.
+
+Stripe Checkout + Billing is the lean choice here — no invoicing infrastructure needed, maybe a day of integration work against your existing auth system.
+
+## Go-to-market on a shoestring
+- Short demo videos (TikTok/YouTube Shorts/Reels) of the OCR→graph→flashcard flow — this is inherently visual and shareable
+- Relevant subreddits/Discords for your chosen niche
+- Product Hunt launch once the core loop is solid
+- If you land on the bilingual/Chinese-curriculum angle: WeChat/Xiaohongshu communities are where that audience actually lives, not Reddit
+
+## First two weeks, concretely
+1. Post the demo, gauge which audience bites
+2. Add per-user AI usage caps
+3. Migrate off JSON files to a real DB (this is the highest-risk technical debt for real users)
+4. Wire up Stripe for one simple pricing model
+5. Turn off/hide parent-monitor and game features until step 1 tells you they matter
+
+Want help with any specific piece — the Postgres migration, the Stripe integration, or drafting the demo/landing page copy?

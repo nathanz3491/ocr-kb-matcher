@@ -4,9 +4,11 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
 import { getKnowledgeGraphStorage } from '../services/knowledgeGraphStorage';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/knowledge-graph

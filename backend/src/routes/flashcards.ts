@@ -13,8 +13,10 @@ import {
   deleteFlashcards,
   generateFlashcards,
 } from '../services/flashcardService';
+import { aiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/flashcards
@@ -53,7 +55,7 @@ router.get('/:nodeId', authenticate, asyncHandler(async (req: Request, res: Resp
  * POST /api/flashcards/:nodeId/generate
  * Manually generate flashcards for a node
  */
-router.post('/:nodeId/generate', authenticate, asyncHandler(async (req: Request, res: Response) => {
+router.post('/:nodeId/generate', authenticate, aiLimiter, asyncHandler(async (req: Request, res: Response) => {
   const { nodeId } = req.params;
   const userId = req.user!.userId;
   const flashcardSet = await generateFlashcards(nodeId, userId);

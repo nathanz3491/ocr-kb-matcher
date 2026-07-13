@@ -1,0 +1,101 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - button [ref=f3e3]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic: ⌘K
+          - button "Switch to dark mode"
+          - generic:
+            - link "Sign In":
+              - /url: /auth/login
+            - link "Get Started":
+              - /url: /auth/register
+    - generic [ref=f3e10]:
+      - generic [ref=f3e11]: Legal
+      - heading "退款政策" [level=1] [ref=f3e18]
+      - paragraph [ref=f3e19]: Refund Policy
+      - paragraph [ref=f3e20]: "最后更新：2026年7月12日 | Last updated: July 12, 2026"
+    - generic [ref=f3e21]:
+      - generic [ref=f3e22]:
+        - generic [ref=f3e28]:
+          - heading "退款条件" [level=2] [ref=f3e29]
+          - paragraph [ref=f3e30]: Refund Eligibility
+        - generic [ref=f3e31]:
+          - paragraph [ref=f3e32]:
+            - text: 我们提供
+            - strong [ref=f3e33]: 7 天无理由退款保证
+            - text: ，适用于所有付费套餐（月卡 ¥19/月、年卡 ¥198/年）。
+          - paragraph [ref=f3e34]: 符合以下条件即可申请全额退款：
+          - list [ref=f3e35]:
+            - listitem [ref=f3e36]: 自购买之日起 7 个自然日内提出申请；
+            - listitem [ref=f3e37]: 申请账户在申请退款时处于正常状态（未因违规被封禁）；
+            - listitem [ref=f3e38]: 同一账户在同一自然年内最多可申请 1 次退款。
+          - paragraph [ref=f3e39]: 免费套餐（Free）不涉及退款。7 天免费试用期结束后自动转为免费套餐，试用期间无需付费，因此不适用退款。
+          - paragraph [ref=f3e40]: We offer a 7-day money-back guarantee for all paid subscriptions (Monthly ¥19/mo, Annual ¥198/yr). Eligible if requested within 7 days of purchase, account is in good standing, and no more than 1 refund per calendar year. Free tier and trial periods are not eligible for refunds.
+      - generic [ref=f3e41]:
+        - generic [ref=f3e47]:
+          - heading "退款流程与时限" [level=2] [ref=f3e48]
+          - paragraph [ref=f3e49]: Refund Process & Timeline
+        - generic [ref=f3e50]:
+          - paragraph [ref=f3e51]: 退款申请流程如下：
+          - list [ref=f3e52]:
+            - listitem [ref=f3e53]:
+              - strong [ref=f3e54]: 提交申请
+              - text: ：通过本页底部邮箱或平台内"设置 > 订阅管理"提交退款申请，注明购买订单号及退款原因；
+            - listitem [ref=f3e55]:
+              - strong [ref=f3e56]: 审核处理
+              - text: ：我们将在 3 个工作日内完成审核。审核期间您的套餐权益保持不变；
+            - listitem [ref=f3e57]:
+              - strong [ref=f3e58]: 退款到账
+              - text: ：审核通过后，款项将原路退回至您的支付账户（微信支付或支付宝）。到账时间取决于支付渠道，通常为 3–10 个工作日。
+          - paragraph [ref=f3e59]: 退款成功后，您的账户将自动降级为免费套餐，已使用的付费额度不计入退款扣减（7 天内全额退）。
+          - paragraph [ref=f3e60]: Submit via email or Settings > Subscription with order ID and reason. We review within 3 business days. Refunds are returned to the original payment method (WeChat Pay / Alipay) within 3–10 business days. After refund, your account downgrades to the free tier; usage during the period is not deducted.
+      - generic [ref=f3e61]:
+        - generic [ref=f3e66]:
+          - heading "特殊情况" [level=2] [ref=f3e67]
+          - paragraph [ref=f3e68]: Special Circumstances
+        - generic [ref=f3e69]:
+          - paragraph [ref=f3e70]: 以下情况不适用标准 7 天退款政策，但可联系客服协商处理：
+          - list [ref=f3e71]:
+            - listitem [ref=f3e72]:
+              - strong [ref=f3e73]: 超过 7 天
+              - text: ：购买超过 7 天后原则上不予退款。但若因平台重大故障导致服务连续不可用超过 48 小时，可申请按比例退还剩余时长费用；
+            - listitem [ref=f3e74]:
+              - strong [ref=f3e75]: 年卡中途退订
+              - text: ：年卡用户在购买 7 天后要求退订，可按照剩余未使用月份的比例退还费用（已使用月份按月卡单价 ¥19 折算，退还剩余部分）；
+            - listitem [ref=f3e76]:
+              - strong [ref=f3e77]: 重复扣款
+              - text: ：因系统或支付渠道故障导致的重复扣款，一经核实全额退还重复部分，不受 7 天限制；
+            - listitem [ref=f3e78]:
+              - strong [ref=f3e79]: 欺诈或滥用
+              - text: ：如发现利用退款政策进行恶意套利（如反复购买-退款以获取免费 AI 额度），我们有权拒绝退款并保留追究责任的权利。
+          - paragraph [ref=f3e80]: Beyond 7 days, refunds are generally not available unless platform downtime exceeds 48 hours (prorated) or duplicate charges occurred (full refund). Annual subscribers may receive a prorated refund after 7 days based on unused months. We reserve the right to deny refunds in cases of fraud or policy abuse.
+      - generic [ref=f3e81]:
+        - generic [ref=f3e87]:
+          - heading "联系方式" [level=2] [ref=f3e88]
+          - paragraph [ref=f3e89]: Contact Us
+        - generic [ref=f3e90]:
+          - paragraph [ref=f3e91]: 如有关于退款的任何疑问或需要提交退款申请，请通过以下方式联系我们的支持团队：
+          - link "zimonathanzhou@outlook.com" [ref=f3e96] [cursor=pointer]:
+            - /url: mailto:zimonathanzhou@outlook.com?subject=Refund%20Request
+          - paragraph [ref=f3e97]: 请在邮件标题注明"退款申请"，并在正文中提供注册邮箱、订单号及退款原因，以便我们快速处理。
+          - paragraph [ref=f3e98]: For refund questions or to submit a request, email zimonathanzhou@outlook.com with subject "Refund Request" and include your registered email, order ID, and reason for faster processing.
+      - generic [ref=f3e100]:
+        - generic [ref=f3e101]:
+          - link "服务条款" [ref=f3e102] [cursor=pointer]:
+            - /url: /legal/terms
+          - link "隐私政策" [ref=f3e107] [cursor=pointer]:
+            - /url: /legal/privacy
+        - link "返回首页" [ref=f3e111] [cursor=pointer]:
+          - /url: /
+      - paragraph [ref=f3e115]: © 2026 OCR Knowledge Base Matcher. 保留所有权利。
+  - button "Open Next.js Dev Tools" [ref=f3e121] [cursor=pointer]

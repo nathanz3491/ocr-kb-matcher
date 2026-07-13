@@ -1,0 +1,13 @@
+Reviews before upload: 0
+Upload response: status=201, jobId=43659e39-4963-44ac-9984-6c2ef678d93a
+Job created: 43659e39-4963-44ac-9984-6c2ef678d93a. Waiting for completion...
+  Poll 1: status=matching
+  Poll 2: status=matching
+  Poll 3: status=processing
+  Poll 4: status=processing
+  Poll 5: status=processing
+  Poll 6: status=completed
+Job completed: {"success":true,"data":{"id":"43659e39-4963-44ac-9984-6c2ef678d93a","userId":"qa-monthly-001","status":"completed","currentStep":"generate_review","fileName":"qa-scenario8-test.txt","filePath":"C:\\Users\\64887\\ocr-kb-matcher\\backend\\uploads\\9f8f244c-a92c-478f-9d91-cf9d9a0a1069-1783862561942-zw2gpn.txt","ocrText":"This is a test document for SM-2 review testing. The quick brown fox jumps over the lazy dog.","ocrConfidence":0.01,"results":[],"graphData":{"nodes":[{"id":"node-1","type":"concept","position":{"x":0,"y":0},"data":{"label":"Test Document","description":"A document used for SM-2 review testing","category":"Documentation","confidence":0.95}},{"id":"node-2","type":"concept","position":{"x":100,"y":0},"data":{"label":"SM-2 Review","description":"A review process for SM-2","category":"Review Process","confidence":0.95}},{"id":"node-3","type":"concept","position":{"x":200,"y":0},"data":{"label":"Quick Brown Fox","description":"A common phrase used to test typography","category":"Phrase","confidence":0.95}},{"id":"node-4","type":"concept","position":{"x":300,"y":0},"data":{"label":"Lazy Dog","description":"A common phrase used to test typography","category":"Phrase","confidence":0.95}},{"id":"node-5","type":"concept","position":{"x":400,"y":0},"data":{"label":"Jumps Over","description":"An action of one entity over another","category":"Action","confidence":0.95}}],"edges":[{"id":"edge-1","source":"node-1","target":"node-2","label":"used for"},{"id":"edge-2","source":"node-3","target":"node-5","label":"performs"},{"id":"edge-3","source":"node-5","target":"node-4","label":"over"}]},"error":null,"createdAt":"2026-07-12T13:22:41.946Z","updatedAt":"2026-07-12T13:22:59.336Z","completedAt":"2026-07-12T13:22:59.336Z","jobType":"SINGLE","wrongQuestionIndices":null}}
+Reviews after upload: 0
+Review rows: []
+GET /api/reviews/due: status=200, count=0

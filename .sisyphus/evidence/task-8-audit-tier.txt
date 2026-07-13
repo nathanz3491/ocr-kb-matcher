@@ -1,0 +1,34 @@
+Task 8 — Admin Action Audit Log QA Results
+============================================
+
+Test: Admin audit log writes to SQLite audit_log table
+Date: 2026-07-12
+
+1. logAdminAction WRITE
+   - Called logAdminAction('qa-admin-001', 'tier_update', 'qa-target-001', {tier:'free'}, {tier:'monthly'})
+   - Called logAdminAction('qa-admin-001', 'role_update', 'qa-target-001', {role:'user'}, {role:'admin'})
+   - Direct DB query: 2 rows found for admin qa-admin-001 ✅
+
+2. getAuditLog READ
+   - Filter by userId (target): 2 entries returned ✅
+   - Filter by action='tier_update': 1 entry returned ✅
+   - Field mapping verified:
+     - adminId ← user_id column ✅
+     - targetUserId ← resource_id column ✅
+     - before/after ← details JSON ✅
+     - createdAt ← created_at column ✅
+
+3. Assertions (ALL PASSED)
+   - tier_update entry: adminId='qa-admin-001', before.tier='free', after.tier='monthly' ✅
+   - role_update entry: before.role='user', after.role='admin' ✅
+   - Unfiltered query returns >= 2 entries ✅
+
+4. TypeScript
+   - backend/src/services/auditLog.ts: 0 diagnostics ✅
+   - backend/src/routes/admin.ts: 0 diagnostics ✅
+   - backend npx tsc --noEmit: only pre-existing upload.ts errors ✅
+
+Summary: Audit log service correctly persists to SQLite and reads back
+with proper field mapping. Admin route PATCH handlers for tier and role
+are wrapped with audit log writes. GET /api/admin/audit-log endpoint
+added with query params userId, action, limit.

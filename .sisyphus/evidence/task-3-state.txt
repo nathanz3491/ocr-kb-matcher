@@ -1,0 +1,20 @@
+Exported functions:
+- createStateManager (exported factory function)
+
+Atomic write pattern:
+- saveStatus() writes JSON to {filePath}.tmp using fs.writeFile
+- Then fs.rename to move .tmp to actual path
+- On rename failure (Windows cross-device), falls back to fs.copyFile + fs.unlink
+- Return true on success, false on any error
+
+Debounce mechanism:
+- scheduleFlush() clears existing flushTimer via clearTimeout
+- Sets new setTimeout with 500ms delay before calling flush()
+- updateSession() and deleteSession() both call scheduleFlush()
+- dispose() clears timer and immediately calls flush() synchronously
+
+No console.log, no throw, no external imports:
+- Uses only fs/promises from node:fs
+- All async operations wrapped in try/catch returning defaults
+- Error handlers are empty catch blocks or return false
+- No console statements anywhere

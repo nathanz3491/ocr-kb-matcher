@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import { authenticate } from '../middleware/auth';
 import {
   createKnowledgeNode,
   getAllNodes,
@@ -20,6 +21,7 @@ import { getKnowledgeGraphStorage } from '../services/knowledgeGraphStorage';
 import { CreateKnowledgeNodeInput } from '../services/knowledgeGraph';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * @route GET /api/graph/health

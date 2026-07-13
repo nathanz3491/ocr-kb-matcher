@@ -1,0 +1,10 @@
+Upload 1: status=200 body={"success":true,"quotaInfo":{"tier":"free","resource":"uploads","used":1,"limit":2}}
+Upload 2: status=200 body={"success":true,"quotaInfo":{"tier":"free","resource":"uploads","used":2,"limit":2}}
+Upload 3: status=429 body={"success":false,"error":"QUOTA_EXCEEDED","resource":"uploads","quota":{"used":2,"limit":2,"tier":"free","resetsAt":"2026-08-01T00:00:00.000Z"},"message":"本月上传额度已用完（2/2）。升级套餐获取更多额度。"}
+
+--- Checks ---
+Status 429 on 3rd: PASS
+error=QUOTA_EXCEEDED: PASS
+quota.used=2: PASS
+quota.limit=2: PASS
+quota.tier=free: PASS

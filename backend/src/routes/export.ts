@@ -4,21 +4,19 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
 import { exportGraphAsPNG, exportProgressAsPDF, exportKnowledgeGraphAsText } from '../services/exportService';
 import { generateCheatSheetPDF, generateNotesPDF, generateFlashcardsPDF } from '../services/pdfExportService';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/export/graph-png
  * Export knowledge graph as PNG/SVG image
  */
 router.get('/graph-png', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const imageBuffer = await exportGraphAsPNG(userId);
     res.setHeader('Content-Type', 'image/svg+xml');
@@ -35,11 +33,7 @@ router.get('/graph-png', async (req: Request, res: Response) => {
  * Export progress report as PDF
  */
 router.get('/progress-pdf', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const pdfBuffer = await exportProgressAsPDF();
     res.setHeader('Content-Type', 'application/pdf');
@@ -56,11 +50,7 @@ router.get('/progress-pdf', async (req: Request, res: Response) => {
  * Export knowledge graph as AI-friendly text format
  */
 router.get('/ai-text', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const text = await exportKnowledgeGraphAsText(userId);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -73,11 +63,7 @@ router.get('/ai-text', async (req: Request, res: Response) => {
 });
 
 router.get('/cheat-sheet/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const nodeId = req.params.nodeId;
     const buffer = await generateCheatSheetPDF(nodeId);
@@ -92,11 +78,7 @@ router.get('/cheat-sheet/:nodeId', async (req: Request, res: Response) => {
 });
 
 router.get('/notes/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const nodeId = req.params.nodeId;
     const buffer = await generateNotesPDF(nodeId);
@@ -111,11 +93,7 @@ router.get('/notes/:nodeId', async (req: Request, res: Response) => {
 });
 
 router.get('/flashcards/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const nodeId = req.params.nodeId;
     const buffer = await generateFlashcardsPDF(nodeId);

@@ -1,0 +1,28 @@
+﻿node.exe : PASS src/middleware/quota.test.ts (6.555 s)
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/middle...st.ts (6.555 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+PASS src/middleware/auth.test.ts (7.777 s)
+PASS src/routes/admin.test.ts (8.157 s)
+PASS src/services/userService.test.ts (8.188 s)
+-----------------|---------|----------|---------|---------|------------------------------------------------------------
+File             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                          
+-----------------|---------|----------|---------|---------|------------------------------------------------------------
+All files        |   77.16 |     67.4 |   68.25 |   78.29 |                                                            
+ middleware      |   70.91 |    60.33 |   58.33 |   72.52 |                                                            
+  auth.ts        |   62.66 |    55.33 |      50 |   63.97 | 10-11,16,21-23,75-80,88-89,103-104,110-111,163-168,183-233 
+  quota.ts       |   97.82 |    88.88 |     100 |   97.82 | 110                                                        
+ routes          |   93.42 |       75 |    90.9 |   93.05 |                                                            
+  admin.ts       |   93.42 |       75 |    90.9 |   93.05 | 66,108,121-128                                             
+ services        |   77.08 |    70.74 |   67.85 |   78.19 |                                                            
+  userService.ts |   77.08 |    70.74 |   67.85 |   78.19 | 13-14,19,24-26,296-321,337-338                             
+-----------------|---------|----------|---------|---------|------------------------------------------------------------
+
+Test Suites: 4 passed, 4 total
+Tests:       57 passed, 57 total
+Snapshots:   0 total
+Time:        9.991 s
+Ran all test suites.

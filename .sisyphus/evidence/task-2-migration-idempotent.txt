@@ -1,0 +1,31 @@
+=== QA Scenario 1: Migration Script Idempotency ===
+Date: 2026-07-12
+Status: PASS
+
+Preconditions:
+- backend/data/users.json contains 7 users
+- backend/data/knowledge-graph.json contains 135 nodes, 181 edges
+- backend/data/reviews.json contains 1 review item
+- backend/data/chat-histories.json contains 1 session
+- backend/data/flashcards/ contains 8 files with 120 total cards
+
+Test Steps:
+1. Ran `npx ts-node backend/scripts/migrate-json-to-sqlite.ts` (first run)
+   Result: 7 users, 135 nodes, 181 edges, 1 review, 1 chat session, 120 flashcards, 8 flashcard sets migrated
+
+2. Ran same command again (second run — idempotency test)
+   Result: Same output, no errors
+
+3. Queried DB via node script:
+   users: 7
+   graph_nodes: 135
+   graph_edges: 181
+   reviews: 1
+   chat_sessions: 1
+   flashcards: 120
+   flashcard_sets: 8
+
+Assertion: Counts match expected values. No duplicates from second run.
+INSERT OR IGNORE successfully prevented duplicates.
+
+Verdict: PASS — Migration is idempotent.

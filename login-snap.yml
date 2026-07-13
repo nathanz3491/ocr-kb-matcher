@@ -1,0 +1,21 @@
+- generic [active] [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e32] [cursor=pointer]
+  - alert [ref=f2e36]
+  - generic [ref=f2e38]:
+    - generic [ref=f2e39]:
+      - heading "Welcome Back" [level=1] [ref=f2e40]
+      - paragraph [ref=f2e41]: Sign in to your account to continue
+    - generic [ref=f2e42]:
+      - generic [ref=f2e43]:
+        - generic [ref=f2e44]: Email
+        - textbox "Email" [ref=f2e49]:
+          - /placeholder: you@example.com
+      - generic [ref=f2e50]:
+        - generic [ref=f2e51]: Password
+        - textbox "Password" [ref=f2e56]:
+          - /placeholder: Enter your password
+      - button "Sign In" [ref=f2e57]
+    - paragraph [ref=f2e60]:
+      - text: Don't have an account?
+      - link "Create one" [ref=f2e61] [cursor=pointer]:
+        - /url: /auth/register

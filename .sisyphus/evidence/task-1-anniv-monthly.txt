@@ -1,0 +1,9 @@
+Command: npx ts-node src/_qa_task1.ts (Scenario 3 portion)
+
+=== Scenario 3: nextAnniversaryDate (monthly, July 11 ¡ú Aug 11) ===
+subscriptionStartedAt: 2026-07-11
+tier: monthly
+now: 2026-07-25
+nextAnniversaryDate: 2026-08-11T00:00:00.000Z
+Expected: 2026-08-11T00:00:00.000Z
+PASS: true

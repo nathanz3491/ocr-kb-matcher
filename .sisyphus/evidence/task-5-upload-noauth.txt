@@ -1,0 +1,14 @@
+﻿QA Scenario 1: Unauthenticated POST to /api/upload
+====================================================
+Command: curl -X POST http://localhost:3001/api/upload
+
+Response:
+HTTP/1.1 401 Unauthorized
+Body: {"success":false,"error":"No authorization header provided"}
+
+NOTE: The 'authenticate' middleware (applied via router.use at line 36) catches
+unauthenticated requests before they reach the route-level 'requireAuth' and
+'enforceQuota' middlewares. This is expected — the auth gate prevents the quota
+middleware from ever being reached by unauthenticated callers.
+
+Expected: 401 AUTH_REQUIRED (authenticate returns 401 No authorization header)

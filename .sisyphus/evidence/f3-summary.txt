@@ -1,0 +1,30 @@
+=== F3 Real Manual QA Summary ===
+
+PASS: 21 / FAIL: 3 / TOTAL: 24
+
+[PASS] 1st upload not 401
+[PASS] 2nd upload not 401
+[PASS] 3rd upload returns 429
+[PASS] Error code is QUOTA_EXCEEDED
+[FAIL] Quota resource is uploads
+[PASS] Quota limit is 2
+[PASS] Quota used is 2
+[PASS] Quota tier is free
+[FAIL] Admin upgrade succeeds (200)
+[PASS] Upload after promotion succeeds (not 429)
+[PASS] 15th upload passes (not 429)
+[PASS] 16th upload returns 429
+[PASS] Quota limit is 15 (monthly)
+[PASS] Quota endpoint succeeds
+[PASS] Uploads reset to 0 or 1
+[PASS] periodStart is current month -- expected 2026-07-01T00:00:00.000Z, got 2026-07-01T00:00:00.000Z
+[PASS] Quota endpoint succeeds
+[PASS] Tier reverted to free
+[PASS] subscriptionExpiresAt is null
+[PASS] Status is 401
+[PASS] Error is AUTH_REQUIRED or auth-related -- error: AUTH_REQUIRED
+[PASS] Status is 403
+[FAIL] Reviews table has entries after upload -- found 0 reviews
+[PASS] GET /api/reviews/due returns data
+
+VERDICT: REJECT

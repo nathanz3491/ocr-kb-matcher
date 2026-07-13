@@ -1,0 +1,40 @@
+=== Evidence: Admin lists all users (no password fields) ===
+
+Request:
+  GET /api/admin/users
+  Authorization: Bearer <admin-token> (sanity@test.com, in ADMIN_EMAILS)
+
+Response:
+  HTTP 200 OK
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "sanity-user-001",
+        "email": "sanity@test.com",
+        "name": "Sanity Check",
+        "tier": "monthly",
+        "role": "admin",
+        "subscriptionStartedAt": null,
+        "subscriptionExpiresAt": "2026-08-10T12:48:12.697Z",
+        "usage": { "periodStart": "", "uploads": 0, "quizGenerated": 0, "chatMessages": 0 },
+        "createdAt": "2026-07-11T12:48:12.478Z",
+        "updatedAt": "2026-07-11T12:48:12.697Z"
+      },
+      {
+        "id": "a561f262-6b08-4942-b553-86d8d11081d1",
+        "email": "newuser@test.com",
+        "name": "New User",
+        "tier": "free",
+        "role": "user",
+        ... (no passwordHash, no password, no sensitive fields)
+      },
+      ...
+    ]
+  }
+
+Validation:
+  PASS — All users returned as array. NO passwordHash field. NO password field.
+  NO emailVerificationCode. NO settings. NO parentCode. NO accountType.
+  Only expected fields: id, email, name, tier, role, subscriptionStartedAt,
+  subscriptionExpiresAt, usage, createdAt, updatedAt.

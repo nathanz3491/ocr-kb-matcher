@@ -1,0 +1,146 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - button [ref=e3]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic: ⌘K
+          - button "Switch to dark mode"
+          - generic:
+            - link "Sign In":
+              - /url: /auth/login
+            - link "Get Started":
+              - /url: /auth/register
+    - generic [ref=e10]:
+      - generic [ref=e11]: AI 驱动的学习平台
+      - heading "把笔记变成知识图谱" [level=1] [ref=e16]
+      - paragraph [ref=e17]: AI 自动整理，智能复习。上传你的学习资料，让 AI 帮你构建知识体系、生成测验、管理错题，用科学的方法高效提分。
+      - generic [ref=e18]:
+        - link "免费试用" [ref=e19] [cursor=pointer]:
+          - /url: /auth/register
+        - link "查看价格" [ref=e24] [cursor=pointer]:
+          - /url: /pricing
+      - generic [ref=e29]:
+        - generic [ref=e30]: 支持 PDF / 图片 / DOCX
+        - generic [ref=e35]: AI 知识图谱构建
+        - generic [ref=e45]: SM-2 科学复习
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - heading "一站式学习工具箱" [level=2] [ref=e53]
+        - paragraph [ref=e54]: 从资料整理到复习巩固，AI 全程陪伴你的学习旅程
+      - generic [ref=e55]:
+        - generic [ref=e59]:
+          - heading "上传文档" [level=3] [ref=e64]
+          - paragraph [ref=e65]: 支持 PDF、图片、DOCX 等多种格式。AI 自动提取文字并结构化整理。
+        - generic [ref=e69]:
+          - heading "知识图谱" [level=3] [ref=e79]
+          - paragraph [ref=e80]: 将知识点可视化为互联图谱，一目了然地看到概念之间的关系与层次。
+        - generic [ref=e84]:
+          - heading "闪卡复习" [level=3] [ref=e90]
+          - paragraph [ref=e91]: AI 自动生成闪卡，支持正反面记忆。快速巩固核心概念与公式。
+        - generic [ref=e95]:
+          - heading "智能测验" [level=3] [ref=e100]
+          - paragraph [ref=e101]: 根据你的知识薄弱点生成自适应测验。错题自动归档，针对性提升。
+        - generic [ref=e105]:
+          - heading "错题本" [level=3] [ref=e109]
+          - paragraph [ref=e110]: 自动收集测验中的错题，分类整理，随时回顾，避免重复犯错。
+        - generic [ref=e114]:
+          - heading "SM-2 间隔重复" [level=3] [ref=e119]
+          - paragraph [ref=e120]: 基于科学的 SM-2 算法，在最佳时间点推送复习内容，记忆效率最大化。
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - generic [ref=e125]:
+          - heading "三步开始高效学习" [level=2] [ref=e126]
+          - paragraph [ref=e127]: 无需复杂设置，上传即可开始
+        - generic [ref=e128]:
+          - generic [ref=e136]:
+            - generic [ref=e137]: 步骤 1
+            - heading "上传你的笔记" [level=4] [ref=e139]
+            - paragraph [ref=e140]: 拍照或上传 PDF、Word 文档。支持试卷、讲义、读书笔记等各种学习资料。
+          - generic [ref=e148]:
+            - generic [ref=e149]: 步骤 2
+            - heading "AI 自动整理" [level=4] [ref=e151]
+            - paragraph [ref=e152]: OCR 识别文字，AI 提取知识点并构建知识图谱。自动归类、去重、建立关联。
+          - generic [ref=e161]:
+            - generic [ref=e162]: 步骤 3
+            - heading "开始智能复习" [level=4] [ref=e164]
+            - paragraph [ref=e165]: 生成闪卡、测验和错题本。SM-2 算法在最佳时间提醒你复习，事半功倍。
+      - generic [ref=e166]:
+        - generic [ref=e167]:
+          - heading "灵活定价" [level=2] [ref=e168]
+          - paragraph [ref=e169]: 从免费开始，按需升级。无隐藏费用，随时取消。
+        - generic [ref=e170]:
+          - generic [ref=e171]:
+            - heading "免费版" [level=4] [ref=e172]
+            - generic [ref=e173]:
+              - generic [ref=e174]: ¥0
+              - generic [ref=e175]: /月
+            - list [ref=e176]:
+              - listitem [ref=e177]: 每月 2 次上传
+              - listitem [ref=e180]: 3 次测验生成
+              - listitem [ref=e183]: 20 条 AI 对话
+          - generic [ref=e186]:
+            - generic [ref=e187]: 推荐
+            - heading "月卡" [level=4] [ref=e188]
+            - generic [ref=e189]:
+              - generic [ref=e190]: ¥19
+              - generic [ref=e191]: /月
+            - list [ref=e192]:
+              - listitem [ref=e193]: 每月 15 次上传
+              - listitem [ref=e196]: 30 次测验生成
+              - listitem [ref=e199]: 100 条 AI 对话
+          - generic [ref=e202]:
+            - heading "年卡" [level=4] [ref=e203]
+            - generic [ref=e204]:
+              - generic [ref=e205]: ¥198
+              - generic [ref=e206]: /年
+            - list [ref=e207]:
+              - listitem [ref=e208]: 每月 15 次上传
+              - listitem [ref=e211]: 30 次测验生成
+              - listitem [ref=e214]: 100 条 AI 对话
+              - listitem [ref=e217]: 相当于 ¥16.5/月
+          - generic [ref=e220]:
+            - heading "高考冲刺" [level=4] [ref=e221]
+            - generic [ref=e222]:
+              - generic [ref=e223]: ¥99
+              - generic [ref=e224]: /季
+            - list [ref=e225]:
+              - listitem [ref=e226]: 50 次上传（一次性）
+              - listitem [ref=e229]: 100 次测验生成
+              - listitem [ref=e232]: 300 条 AI 对话
+              - listitem [ref=e235]: 3–6 月专用
+        - link "查看完整定价详情" [ref=e238] [cursor=pointer]:
+          - /url: /pricing
+    - generic [ref=e246]:
+      - heading "准备好提升学习效率了吗？" [level=2] [ref=e247]
+      - paragraph [ref=e248]: 立即注册，免费体验 AI 知识整理与智能复习。
+      - generic [ref=e249]:
+        - link "免费开始" [ref=e250] [cursor=pointer]:
+          - /url: /auth/register
+        - link "了解更多" [ref=e253] [cursor=pointer]:
+          - /url: /docs
+    - generic [ref=e258]:
+      - heading "订阅产品更新" [level=3] [ref=e259]
+      - paragraph [ref=e260]: 获取新功能通知、学习技巧与独家优惠
+      - generic [ref=e261]:
+        - textbox "your@email.com" [ref=e266]
+        - button "订阅" [ref=e267]
+    - contentinfo [ref=e268]:
+      - generic [ref=e270]:
+        - paragraph [ref=e272]: © 2026 知识智能平台. 保留所有权利。
+        - generic [ref=e273]:
+          - link "服务条款" [ref=e274] [cursor=pointer]:
+            - /url: /legal/terms
+          - link "隐私政策" [ref=e277] [cursor=pointer]:
+            - /url: /legal/privacy
+          - link "退款政策" [ref=e281] [cursor=pointer]:
+            - /url: /legal/refund
+  - button "Open Next.js Dev Tools" [ref=e292] [cursor=pointer]

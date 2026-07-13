@@ -1,0 +1,29 @@
+=== Task 5 QA Evidence — JSON Logs ===
+Date: 2026-07-12
+
+Scenario: Log output is JSON in production mode
+
+Test command:
+  $env:NODE_ENV='production'; $env:LOG_LEVEL='info'
+  npx ts-node -e "import { logger } from './src/lib/logger';
+    logger.info({test:'json-output'}, 'structured log test');
+    logger.error({err:{message:'test-error'}}, 'error test');
+    logger.warn({resource:'uploads',used:1,limit:2}, 'quota check');"
+
+Output (each line is valid JSON):
+
+{"level":30,"time":1783860969599,"service":"ocr-kb-matcher-backend","env":"production","version":"1.0.0","test":"json-output","msg":"structured log test"}
+{"level":50,"time":1783860969599,"service":"ocr-kb-matcher-backend","env":"production","version":"1.0.0","err":{"type":"Object","message":"test-error","stack":""},"msg":"error test"}
+{"level":40,"time":1783860969600,"service":"ocr-kb-matcher-backend","env":"production","version":"1.0.0","resource":"uploads","used":1,"limit":2,"msg":"quota check"}
+
+Validation:
+  ✅ Each line is valid JSON (parsed successfully)
+  ✅ All lines contain: level, time, service, env, msg
+  ✅ Contextual fields present (test, err, resource, used, limit)
+  ✅ Level values correct: 30=info, 50=error, 40=warn
+  ✅ Pretty-print disabled in production (raw JSON lines)
+
+Dev mode verification:
+  $env:NODE_ENV='development'
+  Output is colorized, pretty-printed via pino-pretty
+  (confirmed visually — ANSI escape codes present)

@@ -1,0 +1,21 @@
+- generic [active] [ref=f2e1]:
+  - button "Open Next.js Dev Tools" [ref=f2e40] [cursor=pointer]
+  - alert [ref=f2e44]
+  - generic [ref=f2e46]:
+    - heading "UsageWidget Test" [level=1] [ref=f2e47]
+    - generic [ref=f2e48]:
+      - generic [ref=f2e49]:
+        - generic [ref=f2e54]:
+          - heading "用量统计" [level=3] [ref=f2e55]
+          - text: 免费
+        - generic [ref=f2e56]: 2 周后重置
+      - generic [ref=f2e61]:
+        - generic [ref=f2e63]:
+          - generic [ref=f2e64]: 文档上传
+          - generic [ref=f2e69]: 2 / 5
+        - generic [ref=f2e73]:
+          - generic [ref=f2e74]: 测验生成
+          - generic [ref=f2e79]: 5 / 10
+        - generic [ref=f2e83]:
+          - generic [ref=f2e84]: AI 对话
+          - generic [ref=f2e88]: 12 / 50

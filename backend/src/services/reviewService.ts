@@ -1,69 +1,42 @@
 /**
- * Review Service
+ * Review Service - SQLite-based implementation
  * Implements spaced repetition with SM-2 algorithm
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-
-function getReviewsFile(userId?: string): string {
-  if (userId) {
-    return path.join(DATA_DIR, `reviews-${userId}.json`);
-  }
-  return path.join(DATA_DIR, 'reviews.json');
-}
+import { getDb } from '../db/sqlite';
 
 export interface ReviewItem {
   nodeId: string;
   lastReviewed: string;
   nextReviewDate: string;
   reviewCount: number;
-  interval: number; // days until next review
-  easeFactor: number; // SM-2 ease factor
+  interval: number;
+  easeFactor: number;
 }
 
-interface UserReviewData {
-  reviews: Record<string, ReviewItem>;
+function rowToReview(row: Record<string, unknown>): ReviewItem {
+  return {
+    nodeId: row.node_id as string,
+    lastReviewed: row.last_reviewed as string,
+    nextReviewDate: row.next_review_date as string,
+    reviewCount: row.review_count as number,
+    interval: row.interval_days as number,
+    easeFactor: row.ease_factor as number,
+  };
 }
 
-async function loadReviews(userId?: string): Promise<UserReviewData> {
-  const filePath = getReviewsFile(userId);
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content) as UserReviewData;
-  } catch {
-    return { reviews: {} };
-  }
-}
-
-async function saveReviews(data: UserReviewData, userId?: string): Promise<void> {
-  const filePath = getReviewsFile(userId);
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tempPath = `${filePath}.tmp`;
-  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-  await fs.rename(tempPath, filePath);
-}
-
-/**
- * Calculate next review date using SM-2 algorithm
- */
 function calculateNextReview(
   reviewCount: number,
   interval: number,
   easeFactor: number,
-  quality: number // 0-5 rating of how well user knew the material
+  quality: number
 ): { nextInterval: number; nextEaseFactor: number } {
-  // SM-2 algorithm
   let newEaseFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
   if (newEaseFactor < 1.3) newEaseFactor = 1.3;
 
   let newInterval: number;
 
   if (quality < 3) {
-    // If response was incorrect, start over
     newInterval = 1;
   } else if (reviewCount === 0) {
     newInterval = 1;
@@ -76,47 +49,43 @@ function calculateNextReview(
   return { nextInterval: newInterval, nextEaseFactor: newEaseFactor };
 }
 
-/**
- * Initialize review tracking for a node
- */
 export async function initializeReview(nodeId: string, userId: string): Promise<void> {
-  const reviewData = await loadReviews(userId);
-  if (!reviewData.reviews[nodeId]) {
-    reviewData.reviews[nodeId] = {
-      nodeId,
-      lastReviewed: new Date().toISOString(),
-      nextReviewDate: new Date().toISOString(),
-      reviewCount: 0,
-      interval: 0,
-      easeFactor: 2.5
-    };
-  }
-  await saveReviews(reviewData, userId);
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO reviews
+      (node_id, user_id, last_reviewed, next_review_date, review_count, interval_days, ease_factor)
+    VALUES
+      (@node_id, @user_id, @last_reviewed, @next_review_date, 0, 0, 2.5)
+  `).run({
+    node_id: nodeId,
+    user_id: userId,
+    last_reviewed: now,
+    next_review_date: now,
+  });
 }
 
-/**
- * Mark a topic as reviewed
- */
 export async function markAsReviewed(
   nodeId: string,
   quality: number = 4,
   userId: string
 ): Promise<ReviewItem> {
-  const reviewData = await loadReviews(userId);
+  const db = getDb();
   const now = new Date();
-  let review = reviewData.reviews[nodeId];
 
-  if (!review) {
-    // First review
-    review = {
-      nodeId,
-      lastReviewed: now.toISOString(),
-      nextReviewDate: now.toISOString(),
-      reviewCount: 0,
-      interval: 0,
-      easeFactor: 2.5
-    };
-  }
+  const existing = db.prepare(
+    'SELECT * FROM reviews WHERE node_id = ? AND user_id = ?'
+  ).get(nodeId, userId) as Record<string, unknown> | undefined;
+
+  const review = existing ? rowToReview(existing) : {
+    nodeId,
+    lastReviewed: now.toISOString(),
+    nextReviewDate: now.toISOString(),
+    reviewCount: 0,
+    interval: 0,
+    easeFactor: 2.5,
+  };
 
   const { nextInterval, nextEaseFactor } = calculateNextReview(
     review.reviewCount,
@@ -128,46 +97,60 @@ export async function markAsReviewed(
   const nextReviewDate = new Date(now);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
 
-  review.lastReviewed = now.toISOString();
-  review.nextReviewDate = nextReviewDate.toISOString();
-  review.reviewCount += 1;
-  review.interval = nextInterval;
-  review.easeFactor = nextEaseFactor;
+  const updated: ReviewItem = {
+    nodeId,
+    lastReviewed: now.toISOString(),
+    nextReviewDate: nextReviewDate.toISOString(),
+    reviewCount: review.reviewCount + 1,
+    interval: nextInterval,
+    easeFactor: nextEaseFactor,
+  };
 
-  reviewData.reviews[nodeId] = review;
-  await saveReviews(reviewData, userId);
-  return review;
-}
-
-/**
- * Get reviews due today
- */
-export async function getDueReviews(userId: string): Promise<ReviewItem[]> {
-  const reviewData = await loadReviews(userId);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const dueReviews = Object.values(reviewData.reviews).filter(review => {
-    const nextReview = new Date(review.nextReviewDate);
-    nextReview.setHours(0, 0, 0, 0);
-    return nextReview <= now;
+  db.prepare(`
+    INSERT INTO reviews
+      (node_id, user_id, last_reviewed, next_review_date, review_count, interval_days, ease_factor)
+    VALUES
+      (@node_id, @user_id, @last_reviewed, @next_review_date, @review_count, @interval_days, @ease_factor)
+    ON CONFLICT(node_id, user_id) DO UPDATE SET
+      last_reviewed = excluded.last_reviewed,
+      next_review_date = excluded.next_review_date,
+      review_count = excluded.review_count,
+      interval_days = excluded.interval_days,
+      ease_factor = excluded.ease_factor
+  `).run({
+    node_id: updated.nodeId,
+    user_id: userId,
+    last_reviewed: updated.lastReviewed,
+    next_review_date: updated.nextReviewDate,
+    review_count: updated.reviewCount,
+    interval_days: updated.interval,
+    ease_factor: updated.easeFactor,
   });
 
-  // Sort by review count (fewer reviews first = newer items)
-  return dueReviews.sort((a, b) => a.reviewCount - b.reviewCount);
+  return updated;
 }
 
-/**
- * Get all review items
- */
+export async function getDueReviews(userId: string): Promise<ReviewItem[]> {
+  const db = getDb();
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const nowStr = now.toISOString().split('T')[0];
+
+  const rows = db.prepare(`
+    SELECT * FROM reviews
+    WHERE user_id = ? AND next_review_date <= ?
+    ORDER BY review_count ASC
+  `).all(userId, nowStr) as Record<string, unknown>[];
+
+  return rows.map(rowToReview);
+}
+
 export async function getAllReviews(userId: string): Promise<ReviewItem[]> {
-  const reviewData = await loadReviews(userId);
-  return Object.values(reviewData.reviews);
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM reviews WHERE user_id = ?').all(userId) as Record<string, unknown>[];
+  return rows.map(rowToReview);
 }
 
-/**
- * Get review statistics
- */
 export async function getReviewStats(userId: string): Promise<{
   totalDue: number;
   totalReviewed: number;

@@ -1,0 +1,4 @@
+QA Scenario: getUserById returns null for missing user
+============================================================
+getUserById('nonexistent-id-12345') => null
+PASS: true

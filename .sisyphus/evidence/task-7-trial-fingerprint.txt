@@ -1,0 +1,23 @@
+Task 7 — Free trial abuse prevention: Device fingerprint-based blocking
+
+Device fingerprint: SHA-256 hash of `userAgent + acceptLanguage`
+Example: crypto.createHash('sha256').update('Mozilla/5.0 en-US').digest('hex')
+
+=== TEST 2: Fingerprint-based blocking ===
+
+Setup: Inserted trial_attempts for test-fp-evidence@example.com
+  with device_fingerprint=85f9c0588e922a29999c01c4edc20ab0edcf6fb48244fdebe70965cc70e068f8
+
+Check: Different email, same fingerprint → active trial check
+  Result: true (blocked by fingerprint, as expected)
+
+Check: Different email, same fingerprint → recent trial check (90-day cooldown)
+  Result: true (blocked by fingerprint, as expected)
+
+Check: Clean email + clean fingerprint → can start
+  Result: true (allowed as expected)
+
+=== CONCLUSION ===
+Device fingerprint-based trial abuse prevention works correctly:
+- Same fingerprint blocks different emails from starting new trials
+- Clean fingerprints on clean emails pass through

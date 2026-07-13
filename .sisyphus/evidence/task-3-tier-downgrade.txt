@@ -1,0 +1,5 @@
+Request status: 200
+
+After tier: PASS (free)
+After subscriptionExpiresAt: PASS (undefined)
+After usage.uploads: PASS (reset to 0 then +1 = 1)

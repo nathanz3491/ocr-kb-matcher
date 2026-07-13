@@ -1,0 +1,23 @@
+=== Evidence: Invalid tier returns 400 ===
+
+Request:
+  PATCH /api/admin/users/a561f262-6b08-4942-b553-86d8d11081d1/tier
+  Authorization: Bearer <admin-token>
+  Content-Type: application/json
+  Body: {"tier":"invalid_tier"}
+
+Response:
+  HTTP 400 Bad Request
+  {
+    "status": "fail",
+    "message": "Invalid tier \"invalid_tier\". Must be one of: free, monthly, yearly",
+    "timestamp": "2026-07-11T14:06:00.212Z"
+  }
+
+Validation:
+  PASS — Invalid tier correctly rejected with 400 status.
+  Error message lists valid tier options.
+  Route validation (VALID_TIERS.includes check) is working.
+  Note: Response format uses {status, message, timestamp} from the global
+  errorHandler (via asyncHandler + AppError), which differs from the
+  {success, error} format used by manual try/catch routes.

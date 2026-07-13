@@ -1,0 +1,2 @@
+Upload 15: status=400
+Upload 16: status=429, body={"success":false,"error":"QUOTA_EXCEEDED","resource":"uploads","quota":{"used":15,"limit":15,"tier":"monthly","resetsAt":"2026-08-01T00:00:00.000Z"},"message":"本月上传额度已用完（15/15）。升级套餐获取更多额度。"}

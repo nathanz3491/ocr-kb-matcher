@@ -1,0 +1,32 @@
+=== Task 5 QA Evidence — Zero console.log in Target Files ===
+Date: 2026-07-12
+
+Scenario: No console.log remains in non-test backend code
+
+Target files (per plan — all verified clean):
+  ✅ backend/src/services/queueProcessor.ts — 0 console.log/console.error
+  ✅ backend/src/services/jobProcessor.ts   — 0 console.log/console.error
+  ✅ backend/src/middleware/quota.ts         — 0 console.log/console.error (was already clean)
+  ✅ backend/src/middleware/auth.ts          — 0 console.log/console.error (was already clean)
+  ✅ backend/src/routes/admin.ts             — 0 console.log/console.error
+  ✅ backend/src/services/userService.ts     — 0 console.log/console.error
+  ✅ backend/src/app.ts                      — 0 console.log/console.error (except morgan logStream)
+  ✅ backend/src/middleware/errorHandler.ts   — 0 console.log/console.error
+  ✅ backend/src/index.ts                    — 0 console.log/console.error
+
+Additional files updated (beyond plan scope — application entry points):
+  All clean.
+
+Remaining console.log/error (OUT OF SCOPE for Task 5):
+  - backend/src/tests/*.test.ts (3 files, test code)
+  - backend/src/_qa_task4.ts (QA artifact, excluded from tsconfig)
+  - backend/src/middleware/logger.ts (morgan HTTP access logger — kept per plan)
+  - Various service/route files not in plan target list:
+    ai.ts, ocr.ts, flashcardService.ts, quizService.ts, etc.
+    These will be migrated in future tasks as they touch these modules.
+
+Verification method:
+  grep "console\.(log|error)" backend/src --include="*.ts"
+  Excluded: tests/, _qa_*, middleware/logger.ts
+
+Result: ALL TARGET FILES ARE CLEAN. Zero console.log in files specified by the plan.

@@ -1,0 +1,9 @@
+Command: npx ts-node src/_qa_task1.ts (Scenario 1 portion)
+
+=== Scenario 1: isCurrentPeriod (free, same month) ===
+User tier: free
+periodStart: 2026-07-01T00:00:00.000Z
+now: 2026-07-11T12:39:57.677Z
+isCurrentPeriod: true
+Expected: true
+PASS: true

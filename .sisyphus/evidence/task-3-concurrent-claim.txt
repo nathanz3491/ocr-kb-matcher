@@ -1,0 +1,67 @@
+Task 3: Atomic Job Claiming via DB Transactions
+================================================
+Date: 2026-07-12
+Plan: monetization-prep.md (lines 405-439)
+
+## Changes Made
+
+### 1. backend/src/services/jobService.ts — atomic claimJob (→ RETURNING *)
+
+- Added `workerId?: string` parameter
+- Uses `UPDATE ... WHERE id=? AND status='PENDING' SET status='PROCESSING',
+  claimed_by=?, claimed_at=?, attempts=attempts+1 ... RETURNING *`
+- Single-statement atomic claim — no separate read-back needed
+- `rowToJob()` used directly on the returned row (no TOCTOU window)
+
+### 2. backend/src/services/jobService.ts — reclaimStaleJobs (new)
+
+- Reclaims jobs stuck in 'processing' where `claimed_at < cutoff` AND `attempts < maxAttempts`
+- Resets status to 'PENDING', clears claimed_by/claimed_at, increments attempts
+- Sets error message for observability
+- Uses `RETURNING *` for atomic read-back
+
+### 3. backend/src/services/queueProcessor.ts — worker ID + stale detection
+
+- `processNextJob()` passes `queue-processor-${process.pid}` as workerId
+- `checkStaleJobs()` now calls `reclaimStaleJobs()` with max 3 attempts
+- Import: `getProcessingJobs` → `reclaimStaleJobs`
+
+### 4. backend/src/middleware/quota.ts — NOT modified
+
+- Race condition comment (lines 55-61) is about quota JSON storage, not jobs
+- Left as-is per task instructions
+
+## QA Result: CONCURRENT CLAIM
+
+Test: Two parallel claimJob calls for the same PENDING job
+Runner: npx tsx src/tests/concurrentClaim.test.ts
+
+=== Concurrent Claim QA Test ===
+
+Initial job state: { status: 'pending', claimed_by: null, claimed_at: null, attempts: 0 }
+
+Worker 1 claim result: SUCCESS (id=8a6cb68b-b3e9-43f3-a315-43b6c6c1da51)
+Worker 2 claim result: null
+
+=== Verification ===
+Claimed job ID: MATCH
+Status: processing (expected: processing)
+Claimed by: test-worker-1
+Claimed at: 2026-07-12T13:15:14.355Z
+Attempts: 1 (expected: 1)
+
+Fetched job via getJob(): status=processing
+
+=== ALL CHECKS PASSED ===
+
+## TypeScript Verification
+
+- cd backend && npx tsc --noEmit: PASS (exit code 0, no output)
+
+## Summary
+
+- claimJob is now atomic: UPDATE + RETURNING * in one statement
+- SQLite table-level locking prevents concurrent claim races
+- crash recovery: stale jobs (claimed_at > 1hr, attempts < 3) are reclaimed
+- Worker identity tracked via claimed_by column
+- Concurrent test: 2 parallel calls → exactly 1 claim succeeds

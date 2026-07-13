@@ -1,4 +1,6 @@
+import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../lib/logger';
 
 /**
  * Custom error class with status code
@@ -61,9 +63,13 @@ export const errorHandler = (
     errorResponse.stack = err.stack;
   }
 
+  Sentry.captureException(err);
+  if (req.user?.userId) {
+    Sentry.setUser({ id: req.user.userId });
+  }
+
   // Log error for debugging
-  console.error(`[Error] ${statusCode}: ${message}`);
-  console.error(err.stack);
+  logger.error({ statusCode, err, reqId: (req as any).id }, `Unhandled error: ${message}`);
 
   res.status(statusCode).json(errorResponse);
 };

@@ -18,8 +18,8 @@ function getJwtRefreshSecret(): string {
 }
 
 // Token expiration times
-const ACCESS_TOKEN_EXPIRY = '7d';
-const REFRESH_TOKEN_EXPIRY = '30d';
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY = '7d';
 
 /**
  * Validate that required env vars are set
@@ -30,7 +30,7 @@ function validateSecrets(): void {
 }
 
 /**
- * Generate access token (7 days)
+ * Generate access token (15 minutes), includes jti for revocation
  */
 export function generateAccessToken(user: User): string {
   validateSecrets();
@@ -39,19 +39,21 @@ export function generateAccessToken(user: User): string {
     userId: user.id,
     email: user.email,
     accountType: user.accountType || 'student',
+    jti: crypto.randomUUID(),
   };
 
   return jwt.sign(payload, getJwtSecret(), { expiresIn: ACCESS_TOKEN_EXPIRY });
 }
 
 /**
- * Generate refresh token (30 days)
+ * Generate refresh token (7 days), includes jti for revocation
  */
 export function generateRefreshToken(user: User): string {
   validateSecrets();
 
   const payload = {
     userId: user.id,
+    jti: crypto.randomUUID(),
   };
 
   return jwt.sign(payload, getJwtRefreshSecret(), { expiresIn: REFRESH_TOKEN_EXPIRY });
@@ -78,14 +80,17 @@ export function verifyAccessToken(token: string): JWTPayload {
 }
 
 /**
- * Verify refresh token and return userId
+ * Verify refresh token and return userId + jti
  */
-export function verifyRefreshToken(token: string): { userId: string } {
+export function verifyRefreshToken(token: string): { userId: string; jti: string } {
   validateSecrets();
 
   try {
-    const payload = jwt.verify(token, getJwtRefreshSecret()) as { userId: string };
-    return { userId: payload.userId };
+    const payload = jwt.verify(token, getJwtRefreshSecret()) as { userId: string; jti: string };
+    if (!payload.jti) {
+      throw new Error('Refresh token missing jti claim');
+    }
+    return { userId: payload.userId, jti: payload.jti };
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new Error('Refresh token has expired');
@@ -97,11 +102,26 @@ export function verifyRefreshToken(token: string): { userId: string } {
   }
 }
 
+/**
+ * Parse (decode) access token WITHOUT verifying signature.
+ * Used by logout endpoint to extract jti for revocation.
+ * Returns null if token is malformed.
+ */
+export function parseAccessToken(token: string): JWTPayload | null {
+  try {
+    const payload = jwt.decode(token) as JWTPayload | null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export const jwtService = {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
+  parseAccessToken,
 };
 
 export default jwtService;

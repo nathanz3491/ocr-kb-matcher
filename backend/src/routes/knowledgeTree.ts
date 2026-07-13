@@ -1,15 +1,13 @@
 import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
 import { exportTreeForLLM, getFullKnowledgeTree, diagnoseWeakness } from '../services/knowledgeTreeService';
 
 const router = Router();
+router.use(authenticate);
 
 // GET /api/knowledge-tree - Full tree as structured data
 router.get('/', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const tree = await getFullKnowledgeTree(userId);
     res.json({ success: true, data: tree });
@@ -21,11 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 // GET /api/knowledge-tree/export-for-llm - Tree in LLM-friendly format
 router.get('/export-for-llm', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const context = await exportTreeForLLM(userId);
     res.json({ success: true, data: context });
@@ -37,11 +31,7 @@ router.get('/export-for-llm', async (req: Request, res: Response) => {
 
 // GET /api/knowledge-tree/diagnose/:nodeId - Get prerequisites for a node
 router.get('/diagnose/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const prerequisites = await diagnoseWeakness(req.params.nodeId, userId);
     res.json({ success: true, data: prerequisites });

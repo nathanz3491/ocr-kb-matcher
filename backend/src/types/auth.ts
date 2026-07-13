@@ -2,6 +2,8 @@
  * Authentication types for JWT-based user auth system
  */
 
+import { Tier, UserRole, Usage } from '../../../shared/types';
+
 export type AccountType = 'student' | 'parent';
 
 export interface User {
@@ -15,9 +17,16 @@ export interface User {
   emailVerificationExpires?: number;
   parentCode?: string | null;
   parentCodeExpires?: number | null;
+  dateOfBirth?: string;
+  requiresParentalConsent?: boolean;
   createdAt: string;
   updatedAt: string;
   settings: UserSettings;
+  tier?: Tier;
+  subscriptionStartedAt?: string;
+  subscriptionExpiresAt?: string;
+  role?: UserRole;
+  usage?: Usage;
 }
 
 export interface UserSettings {
@@ -31,6 +40,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   accountType: AccountType;
+  jti?: string;
   iat: number;
   exp: number;
 }
@@ -46,9 +56,16 @@ export interface UserWithoutPassword {
   name: string;
   accountType: AccountType;
   emailVerified: boolean;
+  dateOfBirth?: string;
+  requiresParentalConsent?: boolean;
   createdAt: string;
   updatedAt: string;
   settings: UserSettings;
+  tier?: Tier;
+  subscriptionStartedAt?: string;
+  subscriptionExpiresAt?: string;
+  role?: UserRole;
+  usage?: Usage;
 }
 
 export interface TokenBlocklist {

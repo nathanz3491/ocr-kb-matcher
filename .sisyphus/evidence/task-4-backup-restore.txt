@@ -1,0 +1,32 @@
+﻿Task 4 — Backup & Restore Cycle Test
+=====================================
+Date: 2026-07-12 21:15:28
+
+1. PRE-BACKUP STATE
+   Users: 7
+   Nodes: 135
+   Edges: 181
+
+2. BACKUP VERIFICATION
+   Live DB:  303104 bytes
+   Backup:   303104 bytes
+   Size match: True
+   Backup integrity: 7 users found
+
+3. DISASTER SIMULATION
+   Deleted: app.db, app.db-wal, app.db-shm
+   Confirmed gone: True
+
+4. RESTORE
+   Source: C:\Users\64887\ocr-kb-matcher\backend\backups\2026-07-12\app.db
+   Destination: C:\Users\64887\ocr-kb-matcher\backend\data\app.db
+   Restored size: 303104 bytes
+   Size match: True
+
+5. DATA INTEGRITY
+   Users:  7 -> 7 (MATCH: True)
+   Nodes:  135 -> 135 (MATCH: True)
+   Edges:  181 -> 181 (MATCH: True)
+   PRAGMA integrity_check: ok
+
+RESULT: PASS — full backup & restore cycle verified

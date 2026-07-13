@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { authenticate } from '../middleware/auth';
 import {
   getEditorNodes,
   getEditorNode,
@@ -12,13 +13,10 @@ import {
 } from '../services/knowledgeGraphEditor';
 
 const router = Router();
+router.use(authenticate);
 
 router.get('/nodes', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const nodes = await getEditorNodes(userId);
     res.json({ success: true, data: nodes });
@@ -28,11 +26,7 @@ router.get('/nodes', async (req: Request, res: Response, next: NextFunction) => 
 });
 
 router.post('/nodes', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { name, description, domain, prerequisites } = req.body;
 
@@ -56,11 +50,7 @@ router.post('/nodes', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 router.get('/nodes/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { id } = req.params;
     const node = await getEditorNode(id, userId);
@@ -77,11 +67,7 @@ router.get('/nodes/:id', async (req: Request, res: Response, next: NextFunction)
 });
 
 router.put('/nodes/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { id } = req.params;
     const { name, description, domain, prerequisites, nextSteps } = req.body;
@@ -107,11 +93,7 @@ router.put('/nodes/:id', async (req: Request, res: Response, next: NextFunction)
 });
 
 router.delete('/nodes/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { id } = req.params;
     const deleted = await deleteEditorNode(id, userId);
@@ -128,11 +110,7 @@ router.delete('/nodes/:id', async (req: Request, res: Response, next: NextFuncti
 });
 
 router.post('/relationships', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { source, target, label } = req.body;
 
@@ -164,11 +142,7 @@ router.post('/relationships', async (req: Request, res: Response, next: NextFunc
 });
 
 router.delete('/relationships/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { id } = req.params;
     const deleted = await deleteEditorRelationship(id, userId);

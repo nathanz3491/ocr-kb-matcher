@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
+import { authenticate } from '../middleware/auth';
 import { ProcessingStatus } from '../../../shared/types';
 import {
   getJob,
@@ -19,6 +20,7 @@ import {
 import { getQueueProcessor } from '../services/queueProcessor';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/jobs
@@ -29,11 +31,7 @@ const router = Router();
  *   - offset: Number of jobs to skip (default: 0)
  */
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { status, limit, offset } = req.query;
 
@@ -126,11 +124,7 @@ router.get('/stats', async (_req: Request, res: Response) => {
  * Get a specific job by ID
  */
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { id } = req.params;
   const job = await getJob(id);
@@ -190,11 +184,7 @@ router.get('/:id/status', async (req: Request, res: Response) => {
  * Delete a job
  */
 router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { id } = req.params;
   const job = await getJob(id);

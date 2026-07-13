@@ -4,15 +4,17 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "useDefineForClassFields": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "types": ["node", "jest"],
     "declaration": false,
     "sourceMap": false
   },
   "include": ["src/**/*", "../shared/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/_qa_*"]
 }

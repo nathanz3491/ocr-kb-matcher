@@ -1,0 +1,3 @@
+Upload 1: status=400
+Upload 2: status=400
+Upload 3: status=429, body={"success":false,"error":"QUOTA_EXCEEDED","resource":"uploads","quota":{"used":2,"limit":2,"tier":"free","resetsAt":"2026-08-01T00:00:00.000Z"},"message":"本月上传额度已用完（2/2）。升级套餐获取更多额度。"}

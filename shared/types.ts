@@ -4,6 +4,26 @@
  */
 
 /**
+ * Tier type for user subscription levels
+ */
+export type Tier = 'free' | 'monthly' | 'yearly';
+
+/** User role for authorization */
+export type UserRole = 'user' | 'admin';
+
+/** Usage tracking within a billing period */
+export interface Usage {
+  /** ISO date when the current usage period started */
+  periodStart: string;
+  /** Number of uploads used in this period */
+  uploads: number;
+  /** Number of quizzes generated in this period */
+  quizGenerated: number;
+  /** Number of chat messages sent in this period */
+  chatMessages: number;
+}
+
+/**
  * User model
  */
 export interface User {
@@ -11,6 +31,25 @@ export interface User {
   email?: string;
   name?: string;
   createdAt?: string;
+  /** Subscription tier determines feature limits */
+  tier?: Tier;
+  /** When the user's current subscription started (ISO date) */
+  subscriptionStartedAt?: string;
+  /** When the user's current subscription expires (ISO date) */
+  subscriptionExpiresAt?: string;
+  /** User role for authorization */
+  role?: 'user' | 'admin';
+  /** Current usage tracking within the current billing period */
+  usage?: {
+    /** ISO date when the current usage period started */
+    periodStart: string;
+    /** Number of uploads used in this period */
+    uploads: number;
+    /** Number of quizzes generated in this period */
+    quizGenerated: number;
+    /** Number of chat messages sent in this period */
+    chatMessages: number;
+  };
 }
 
 /**

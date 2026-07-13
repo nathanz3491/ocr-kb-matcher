@@ -1,16 +1,14 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
+import { authenticate } from '../middleware/auth';
 import { userProgressService } from '../services/userProgressService';
 
 const router = Router();
+router.use(authenticate);
 
 // GET /api/user-progress - Get current progress
 router.get('/', asyncHandler(async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const progress = await userProgressService.loadProgress(userId);
   res.json({ success: true, data: progress });
@@ -18,11 +16,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // POST /api/user-progress/mark-known - Mark nodes as known
 router.post('/mark-known', asyncHandler(async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { nodeIds } = req.body;
   if (!Array.isArray(nodeIds)) {
@@ -35,11 +29,7 @@ router.post('/mark-known', asyncHandler(async (req, res) => {
 }));
 
 router.post('/increment-mastery', asyncHandler(async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { nodeIds, masteryPercentage = 5 } = req.body;
   if (!Array.isArray(nodeIds)) {

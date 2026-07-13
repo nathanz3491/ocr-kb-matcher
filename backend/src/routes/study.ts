@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
 import {
   getAllCheatSheets,
   getCheatSheetByNode,
@@ -12,19 +13,17 @@ import {
   getStudyNotesByNode,
   getOrGenerateStudyNotes,
 } from '../services/studyMaterialService';
+import { aiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
+router.use(authenticate);
 
 // ===========================================
 // CHEAT SHEETS
 // ===========================================
 
 router.get('/cheat-sheets', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   try {
     const sheets = await getAllCheatSheets(userId);
@@ -45,11 +44,7 @@ router.get('/cheat-sheets', async (req: Request, res: Response) => {
 });
 
 router.get('/cheat-sheets/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   try {
     const { nodeId } = req.params;
@@ -76,12 +71,8 @@ router.get('/cheat-sheets/:nodeId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/cheat-sheets/:nodeId/generate', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+router.post('/cheat-sheets/:nodeId/generate', aiLimiter, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
 
   try {
     const { nodeId } = req.params;
@@ -105,11 +96,7 @@ router.post('/cheat-sheets/:nodeId/generate', async (req: Request, res: Response
 // ===========================================
 
 router.get('/notes', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   try {
     const notes = await getAllStudyNotes(userId);
@@ -130,11 +117,7 @@ router.get('/notes', async (req: Request, res: Response) => {
 });
 
 router.get('/notes/:nodeId', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   try {
     const { nodeId } = req.params;
@@ -161,12 +144,8 @@ router.get('/notes/:nodeId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/notes/:nodeId/generate', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+router.post('/notes/:nodeId/generate', aiLimiter, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
 
   try {
     const { nodeId } = req.params;

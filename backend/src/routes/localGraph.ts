@@ -10,6 +10,7 @@ import { getKnowledgeGraph, getKnowledgeGraphByViewport } from '../services/know
 import { userProgressService } from '../services/userProgressService';
 
 const router = Router();
+router.use(authenticate);
 
 router.get('/', authenticate, asyncHandler(async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
   try {

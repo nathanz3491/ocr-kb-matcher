@@ -1,0 +1,2 @@
+GET /knowledge-graph -> 200
+GET /graph-editor -> 200

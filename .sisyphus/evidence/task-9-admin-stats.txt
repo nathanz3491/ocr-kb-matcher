@@ -1,0 +1,32 @@
+=== Evidence: Admin gets aggregate stats ===
+
+Request:
+  GET /api/admin/stats
+  Authorization: Bearer <admin-token>
+
+Response:
+  HTTP 200 OK
+  {
+    "success": true,
+    "data": {
+      "totalUsers": 4,
+      "freeCount": 3,
+      "paidCount": 1,
+      "estimatedMRR": 19,
+      "totalUploadsThisMonth": 2
+    }
+  }
+
+Validation:
+  PASS — Stats computed correctly:
+  - totalUsers: 4 (all users in users.json)
+  - freeCount: 3 (users with tier='free' or no tier)
+  - paidCount: 1 (sanity-user-001 with tier='monthly')
+  - estimatedMRR: ¥19 (1 monthly × ¥19 + 0 yearly × ¥198)
+  - totalUploadsThisMonth: 2 (sum of all usage.uploads)
+
+  MRR calculation: monthly users × 19 + yearly users × 198
+
+  After the upgrade test (evidence 3), the newuser was set to monthly,
+  but the stats were captured before that upgrade, so paidCount=1.
+  After upgrade, stats would show paidCount=2, estimatedMRR=38.

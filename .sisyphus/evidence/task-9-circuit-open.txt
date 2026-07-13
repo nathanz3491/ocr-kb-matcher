@@ -1,0 +1,29 @@
+﻿=== Step 1: Fire breaker 7 times ===
+  Call 1: FAILED 鈥?Simulated API failure #1
+  Call 2: FAILED 鈥?Breaker is open
+  Call 3: FAILED 鈥?Breaker is open
+  Call 4: FAILED 鈥?Breaker is open
+  Call 5: FAILED 鈥?Breaker is open
+  Call 6: FAILED 鈥?Breaker is open
+  Call 7: FAILED 鈥?Breaker is open
+  callCount (actual function invocations): 1
+  openDetected: true
+
+  Function was skipped when circuit open: PASS
+
+=== Step 2: Fire while circuit is open ===
+  Call: REJECTED 鈥?Breaker is open
+  Function was NOT called (circuit open): PASS
+
+=== Step 3: Breaker state ===
+  opened: true
+  closed: false
+  halfOpen: false
+
+=== Summary ===
+  Total function calls: 1
+  Circuit opened: YES
+  Circuit rejects fast: YES
+  Breaker.opened reflects state: YES
+
+QA PASSED: Circuit breaker opens after failures and rejects fast.

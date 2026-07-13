@@ -1,0 +1,31 @@
+Task 7 — Chat message at free cap returns 429
+================================================
+
+Scenario: Chat message at cap returns 429
+  Preconditions: Free user 'qa-chat-user-001' with usage.chatMessages=20
+  JWT: Valid token for qa-chat-user-001
+
+Steps:
+  1. POST /api/chat with body {"message":"test"} and valid JWT
+  2. Assert status === 429
+  3. Assert error === 'QUOTA_EXCEEDED'
+  4. Assert resource === 'chatMessages'
+  5. Assert quota.used === 20, quota.limit === 20
+
+Actual curl command:
+  curl -s -w "%{http_code}" -X POST http://localhost:3001/api/chat \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer <jwt>" \
+    -d '{"message":"test"}'
+
+Result:
+  Status: 429
+  Body: {"success":false,"error":"QUOTA_EXCEEDED","resource":"chatMessages","quota":{"used":20,"limit":20,"tier":"free","resetsAt":"2026-08-01T00:00:00.000Z"},"message":"本月AI 聊天额度已用完（20/20）。升级套餐获取更多额度"}
+
+  ASSERTION 1 (status=429): PASS
+  ASSERTION 2 (error=QUOTA_EXCEEDED): PASS
+  ASSERTION 3 (resource=chatMessages): PASS
+  ASSERTION 4 (quota.used=20): PASS
+  ASSERTION 5 (quota.limit=20): PASS
+
+Conclusion: ✅ Chat at free cap correctly returns 429

@@ -1,0 +1,42 @@
+=== Test: GET /api/user/quota with valid JWT ===
+Date: 2026-07-11
+
+Free user with default usage (all zeros).
+
+Command:
+curl -s http://localhost:3001/api/user/quota -H "Authorization: Bearer <token>"
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "tier": "free",
+    "role": "user",
+    "usage": {
+      "periodStart": "2026-07-01T00:00:00.000Z",
+      "uploads": 0,
+      "quizGenerated": 0,
+      "chatMessages": 0
+    },
+    "limits": {
+      "uploads": 2,
+      "quizGenerated": 3,
+      "chatMessages": 20
+    },
+    "subscriptionStartedAt": null,
+    "subscriptionExpiresAt": null,
+    "resetsAt": "2026-08-01T00:00:00.000Z"
+  }
+}
+
+Assertions:
+- status === 200 ✓
+- body.data.tier === 'free' ✓
+- body.data.role === 'user' ✓
+- body.data.usage.uploads === 0 ✓
+- body.data.limits.uploads === 2 (free tier limit) ✓
+- body.data.limits.quizGenerated === 3 (free tier limit) ✓
+- body.data.limits.chatMessages === 20 (free tier limit) ✓
+- body.data.subscriptionStartedAt === null ✓
+- body.data.subscriptionExpiresAt === null ✓
+- body.data.resetsAt === '2026-08-01T00:00:00.000Z' (1st of next month) ✓

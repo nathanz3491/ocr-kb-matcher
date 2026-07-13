@@ -9,11 +9,20 @@ import {
   hashPassword,
   verifyPassword,
   toUserWithoutPassword,
+  saveUser,
 } from '../services/userService';
 import { sendVerificationEmail } from '../services/emailService';
 import { UserSettings } from '../types/auth';
+import { Tier } from '../../../shared/types';
+import {
+  TIER_LIMITS,
+  getCurrentMonthStart,
+  isCurrentPeriod,
+  nextAnniversaryDate,
+} from '../config/tiers';
 
 const router = Router();
+router.use(authenticate);
 
 const updateSettingsSchema = z.object({
   settings: z.object({
@@ -176,6 +185,104 @@ router.post(
     await updateUser(req.user.userId, { passwordHash: newPasswordHash });
 
     res.json({ success: true });
+  })
+);
+
+router.get(
+  '/quota',
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'Not authenticated' });
+      return;
+    }
+
+    const user = await getUserById(req.user.userId);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    const now = new Date();
+    let tier: Tier = user.tier ?? 'free';
+
+    // ── Lazy tier downgrade ──────────────────────────────────
+    if (tier !== 'free' && user.subscriptionExpiresAt) {
+      if (new Date(user.subscriptionExpiresAt) < now) {
+        tier = 'free';
+        user.tier = 'free';
+        user.subscriptionExpiresAt = undefined;
+        user.usage = {
+          periodStart: getCurrentMonthStart(),
+          uploads: 0,
+          quizGenerated: 0,
+          chatMessages: 0,
+        };
+        await saveUser(user);
+      }
+    }
+
+    // ── Ensure usage object exists ────────────────────────────
+    const usage = user.usage ?? {
+      periodStart: getCurrentMonthStart(),
+      uploads: 0,
+      quizGenerated: 0,
+      chatMessages: 0,
+    };
+    if (!user.usage) {
+      user.usage = usage;
+    }
+
+    // ── Lazy period rollover ──────────────────────────────────
+    let changed = false;
+    if (!isCurrentPeriod({ tier, usage }, now)) {
+      const fresh = {
+        periodStart: getCurrentMonthStart(),
+        uploads: 0,
+        quizGenerated: 0,
+        chatMessages: 0,
+      };
+      usage.periodStart = fresh.periodStart;
+      usage.uploads = 0;
+      usage.quizGenerated = 0;
+      usage.chatMessages = 0;
+      user.usage = usage;
+      changed = true;
+    }
+
+    if (changed) {
+      await saveUser(user);
+    }
+
+    // ── Compute resetsAt ──────────────────────────────────────
+    const subscriptionStartedAt = (user as { subscriptionStartedAt?: string }).subscriptionStartedAt;
+    const resetsAt = tier === 'free'
+      ? nextAnniversaryDate(usage.periodStart, 'free', now)
+      : nextAnniversaryDate(subscriptionStartedAt ?? usage.periodStart, tier, now);
+
+    // ── Response ──────────────────────────────────────────────
+    const limits = TIER_LIMITS[tier];
+
+    res.json({
+      success: true,
+      data: {
+        tier,
+        role: user.role ?? 'user',
+        usage: {
+          periodStart: usage.periodStart,
+          uploads: usage.uploads,
+          quizGenerated: usage.quizGenerated,
+          chatMessages: usage.chatMessages,
+        },
+        limits: {
+          uploads: limits.uploads,
+          quizGenerated: limits.quizGenerated,
+          chatMessages: limits.chatMessages,
+        },
+        subscriptionStartedAt: subscriptionStartedAt ?? null,
+        subscriptionExpiresAt: user.subscriptionExpiresAt ?? null,
+        resetsAt,
+      },
+    });
   })
 );
 

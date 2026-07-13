@@ -16,6 +16,7 @@ frontend/out/
 
 # Data & uploads
 backend/data/
+backend/backups/
 backend/uploads/
 backend/queue/
 backend/*.log

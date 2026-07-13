@@ -1,0 +1,46 @@
+Task 1 — Period rollover uses subscription start (not 1st of month) for paid users
+=================================================================================
+
+CONTEXT: When a user upgrades from free to monthly/yearly, their usage period should
+run from their subscription start date (anniversary-based), not from the 1st of the
+calendar month (which is the free-tier behavior).
+
+BEFORE THE FIX:
+  - setUserTier set `tier` and `subscriptionExpiresAt` but NOT `subscriptionStartedAt`
+  - `usage.periodStart` remained at the 1st-of-month value set by createUser
+  - Result: upgraded user's period would reset on 1st of month (calendar boundary)
+    instead of their subscription anniversary
+
+AFTER THE FIX:
+  - setUserTier(paidTier) sets:
+    subscriptionStartedAt = new Date().toISOString()
+    usage.periodStart = subscriptionStartedAt  (same timestamp)
+  - isCurrentPeriod (in tiers.ts) uses periodStart to compute periodEnd:
+    monthly: periodStart + 1 month
+    yearly:  periodStart + 1 year
+  - nextAnniversaryDate (in tiers.ts) uses subscriptionStartedAt to compute
+    future anniversary dates for paid tiers
+
+SCENARIO WALKTHROUGH:
+  User upgrades to monthly on 2026-07-12:
+    subscriptionStartedAt = '2026-07-12T...'
+    usage.periodStart = '2026-07-12T...'
+    Period is 2026-07-12 to 2026-08-12
+    On 2026-08-13: isCurrentPeriod returns false → lazy rollover resets periodStart
+    to subscription anniversary (via nextAnniversaryDate) = 2026-08-12 + 1 month
+
+REMAINING CONCERN (out of scope):
+  The lazy rollover in enforceQuota (quota.ts:114-121) uses freshUsage().periodStart
+  (= getCurrentMonthStart(), i.e. 1st of month) for ALL tiers when resetting.
+  This means on the first rollover after upgrade, the periodStart resets to the
+  1st of the month instead of the subscription anniversary. This is a pre-existing
+  issue in quota.ts that this task does not address.
+
+DEPENDENCY: Requires enforceQuota lazy rollover fix for full correctness
+  → tracked in monetization-prep plan (Task 3 or later wave).
+
+VERIFICATION:
+  - tsc --noEmit: PASS
+  - Subscription fields available: subscriptionStartedAt ?: string on User type
+
+DATE: 2026-07-12

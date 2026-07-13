@@ -6,11 +6,13 @@
 import { Router, Request, Response } from 'express';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { authenticate } from '../middleware/auth';
 import { getKnowledgeGraphStorage } from '../services/knowledgeGraphStorage';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 const router = Router();
+router.use(authenticate);
 
 interface Certificate {
   id: string;
@@ -68,11 +70,7 @@ async function saveUserCerts(userId: string, data: UserCertificates): Promise<vo
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const storage = getKnowledgeGraphStorage(userId);
     await storage.initialize();
@@ -113,11 +111,7 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const { topicId, topicName, score } = req.body;
 
@@ -159,11 +153,7 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.get('/:topicId', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const { topicId } = req.params;
     const storage = getKnowledgeGraphStorage(userId);
@@ -209,11 +199,7 @@ router.get('/:topicId', async (req: Request, res: Response) => {
  */
 router.get('/stats/summary', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const storage = getKnowledgeGraphStorage(userId);
     await storage.initialize();

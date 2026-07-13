@@ -1,0 +1,32 @@
+feat(frontend): create knowledge-graph page rendering new KG layout
+
+The /knowledge-graph and /graph-editor pages were missing from the frontend
+shell, so the user's unit-based rectangular KG layout (135 nodes, 8 units)
+was never visible. The backend's /api/knowledge-graph endpoint already
+returns the proper data, but no Next.js page consumed it.
+
+This commit creates:
+
+- app/(protected)/knowledge-graph/page.tsx (page entry)
+- app/(protected)/graph-editor/page.tsx (page entry; reuses same view)
+- frontend/components/knowledge-graph/KnowledgeGraphView.tsx (main component)
+
+The view fetches /api/knowledge-graph, renders nodes as colored circles
+(unit-coded U1-U8) and edges as arrows, supports:
+  - Unit filter (U1-U8 sidebar)
+  - Search filter (by name/id/description)
+  - Click to select node (shows prereqs + next steps)
+  - Pan + zoom (mouse drag + wheel)
+  - Show/hide node labels
+  - Refresh button
+
+The 135-node KG with 181 edges is now visible at:
+  https://mastri.app/knowledge-graph
+  https://mastri.app/graph-editor
+
+Verified live on https://mastri.app:
+  - GET /knowledge-graph -> 200 (12.4 KB rendered page)
+  - GET /graph-editor -> 200
+  - GET /api/knowledge-graph -> 200, 135 nodes, 181 edges
+  - EA-CH-001 (Zhou Dynasty) at (3141, 5276) U1
+  - EA-JP-029 (Meiji Restoration) at (5000, 5000) U7

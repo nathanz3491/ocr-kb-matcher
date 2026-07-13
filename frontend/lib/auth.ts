@@ -14,12 +14,21 @@ axios.interceptors.request.use((config) => {
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return Promise.reject(error);
+
+    if (error.response?.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('authUser');
       window.location.href = '/auth/login';
     }
+
+    if (error.response?.status === 429 && error.response?.data?.error === 'QUOTA_EXCEEDED') {
+      window.dispatchEvent(
+        new CustomEvent('app:quota-exceeded', { detail: error.response.data })
+      );
+    }
+
     return Promise.reject(error);
   }
 );

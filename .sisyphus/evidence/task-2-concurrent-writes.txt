@@ -1,0 +1,28 @@
+=== QA Scenario 2: Concurrent Writes Don't Lose Data ===
+Date: 2026-07-12
+Status: PASS
+
+Preconditions:
+- SQLite database backend/data/app.db is initialized with schema
+- jobService.ts refactored to use SQLite (atomic INSERT via prepared statements)
+- 5 test FileInfo objects created with unique filenames
+
+Test Steps:
+1. Cleared any existing test jobs from DB
+2. Called createJob() 5 times concurrently via Promise.all()
+   - All 5 Jobs were created with unique UUIDs
+3. Queried DB: SELECT COUNT(*) FROM jobs WHERE file_name LIKE 'concurrent-test-%'
+   - Result: 5
+
+Job details:
+  Job 1: 2d25a4fe-20f2-4e79-946d-6ee747a24b06
+  Job 2: 23cbceeb-835d-4980-84e7-add9da574f6d
+  Job 3: 08642595-cba3-4d1d-9e8b-17b098082b46
+  Job 4: 47e35625-2690-45aa-a044-e023a46faa7f
+  Job 5: 8cbe82b7-faf0-40ef-9256-745354c2f5e5
+
+All calls completed in 20ms.
+
+Assertion: count === 5 (no lost writes)
+
+Verdict: PASS — SQLite handles concurrent writes correctly. All 5 jobs persisted.

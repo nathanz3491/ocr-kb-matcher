@@ -9,6 +9,7 @@ import { authenticate } from '../middleware/auth';
 import { getKnowledgeGraph } from '../services/knowledgeGraphStorage';
 
 const router = Router();
+router.use(authenticate);
 
 router.get('/', authenticate, asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;

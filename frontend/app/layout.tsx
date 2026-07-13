@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ToastProvider } from "@/components/notification/Toast";
+import { QuotaExceededHandler } from "@/components/notification/QuotaExceededHandler";
 import { ConfettiProvider } from "@/components/ui/Confetti";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
               <ConfettiProvider>
                 {children}
               </ConfettiProvider>
+              <QuotaExceededHandler />
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>

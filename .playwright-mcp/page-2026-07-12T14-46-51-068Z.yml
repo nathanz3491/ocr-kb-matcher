@@ -1,0 +1,89 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - button [ref=f5e3]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+          - button "Switch to dark mode"
+          - generic:
+            - link "Sign In":
+              - /url: /auth/login
+            - link "Get Started":
+              - /url: /auth/register
+    - generic [ref=f5e10]:
+      - generic [ref=f5e11]: Legal
+      - heading "服务条款" [level=1] [ref=f5e17]
+      - paragraph [ref=f5e18]: Terms of Service
+      - paragraph [ref=f5e19]: "最后更新：2026年7月12日 | Last updated: July 12, 2026"
+    - generic [ref=f5e20]:
+      - generic [ref=f5e21]:
+        - generic [ref=f5e26]:
+          - heading "服务概述" [level=2] [ref=f5e27]
+          - paragraph [ref=f5e28]: Service Overview
+        - generic [ref=f5e29]:
+          - paragraph [ref=f5e30]: 本服务条款（以下简称"条款"）适用于您使用知识智能平台（Knowledge Intelligence Platform，以下简称"本平台"或"我们"）提供的所有在线服务。本平台是一款基于人工智能技术的学习工具，提供文档 OCR 识别、知识图谱构建、智能测验生成、闪卡复习、学习分析等功能。
+          - paragraph [ref=f5e31]: These Terms of Service govern your use of the Knowledge Intelligence Platform ("Platform" or "we"), an AI-powered learning tool providing OCR, knowledge graph construction, quiz generation, flashcard review, and learning analytics.
+      - generic [ref=f5e32]:
+        - generic [ref=f5e38]:
+          - heading "用户账户" [level=2] [ref=f5e39]
+          - paragraph [ref=f5e40]: User Accounts
+        - generic [ref=f5e41]:
+          - paragraph [ref=f5e42]: 使用本平台部分功能需要注册账户。您须年满 13 周岁方可注册。注册时需提供真实、准确的电子邮箱地址，并设置安全密码。您有责任妥善保管账户凭证，对账户下的所有活动承担全部责任。如发现未经授权的使用，请立即联系我们。
+          - paragraph [ref=f5e43]: 我们保留因违反本条款、欺诈行为或长期不活跃（超过 24 个月）而暂停或终止账户的权利。账户终止后，您的个人数据将依据隐私政策处理。
+          - paragraph [ref=f5e44]: Some features require registration. You must be at least 13 years old. Provide accurate information and keep credentials secure. We may suspend or terminate accounts for violations, fraud, or inactivity exceeding 24 months.
+      - generic [ref=f5e45]:
+        - generic [ref=f5e50]:
+          - heading "服务使用" [level=2] [ref=f5e51]
+          - paragraph [ref=f5e52]: Acceptable Use
+        - generic [ref=f5e53]:
+          - paragraph [ref=f5e54]: 您同意仅将本平台用于合法的个人学习目的。禁止以下行为：
+          - list [ref=f5e55]:
+            - listitem [ref=f5e56]: 上传、分享或处理任何违法、侵权、淫秽、暴力或仇恨内容；
+            - listitem [ref=f5e57]: 使用自动化工具（爬虫、机器人）大规模抓取平台数据；
+            - listitem [ref=f5e58]: 试图破解、干扰或破坏平台的安全措施或正常运行；
+            - listitem [ref=f5e59]: 冒充他人身份或提供虚假信息；
+            - listitem [ref=f5e60]: 将平台生成的内容用于商业考试作弊或其他欺诈行为。
+          - paragraph [ref=f5e61]: 违反上述规定可能导致账户立即终止，并保留追究法律责任的权利。
+          - paragraph [ref=f5e62]: "Use the Platform solely for lawful personal learning. Prohibited: illegal/infringing content, automated scraping, security circumvention, impersonation, or using generated content for cheating or fraud. Violations may result in immediate termination."
+      - generic [ref=f5e63]:
+        - generic [ref=f5e69]:
+          - heading "知识产权" [level=2] [ref=f5e70]
+          - paragraph [ref=f5e71]: Intellectual Property
+        - generic [ref=f5e72]:
+          - paragraph [ref=f5e73]: 您保留对上传至平台的所有原始内容（文档、图片、文本等）的所有权。上传即表示您授予本平台一项非独占、可撤销的许可，仅用于提供、改进和维护服务（如 OCR 处理、AI 分析）。
+          - paragraph [ref=f5e74]: 平台界面、代码、品牌标识及 AI 生成的原创学习材料（如自动生成的知识图谱结构、测验题目模板）的知识产权归本平台所有。未经书面许可，不得复制、修改、分发或用于商业目的。
+          - paragraph [ref=f5e75]: You retain ownership of uploaded content and grant us a limited license solely to operate the service. Platform UI, code, branding, and original AI-generated structural materials remain our property. No commercial use without written permission.
+      - generic [ref=f5e76]:
+        - generic [ref=f5e81]:
+          - heading "免责声明" [level=2] [ref=f5e82]
+          - paragraph [ref=f5e83]: Disclaimer
+        - generic [ref=f5e84]:
+          - paragraph [ref=f5e85]: 本平台基于人工智能技术提供服务，AI 生成的内容（包括但不限于知识提取、测验答案、学习建议）可能存在错误或不准确之处，仅供参考，不构成专业教育、医疗或法律建议。
+          - paragraph [ref=f5e86]: 在适用法律允许的最大范围内，本平台不对以下情况承担责任：服务中断、数据丢失、AI 输出错误导致的任何直接或间接损失。我们致力于持续改进服务质量，但不保证服务绝对无中断或无错误。
+          - paragraph [ref=f5e87]: AI-generated content may contain errors and is for reference only, not professional advice. To the extent permitted by law, we are not liable for service interruptions, data loss, or damages arising from AI output inaccuracies.
+      - generic [ref=f5e88]:
+        - generic [ref=f5e97]:
+          - heading "法律适用与争议解决" [level=2] [ref=f5e98]
+          - paragraph [ref=f5e99]: Governing Law
+        - generic [ref=f5e100]:
+          - paragraph [ref=f5e101]: 本条款的订立、效力、解释、履行及争议解决均适用中华人民共和国法律（为本条款之目的，不包括港澳台地区法律）。
+          - paragraph [ref=f5e102]: 因本条款引起的或与本条款有关的任何争议，双方应首先通过友好协商解决；协商不成的，任何一方均可向本平台运营方所在地（深圳市）有管辖权的人民法院提起诉讼。
+          - paragraph [ref=f5e103]: These Terms are governed by the laws of the People's Republic of China. Disputes shall first be resolved through negotiation; if unsuccessful, submitted to the competent court in Shenzhen, where the Platform operator is located.
+      - generic [ref=f5e105]:
+        - generic [ref=f5e106]:
+          - link "隐私政策" [ref=f5e107] [cursor=pointer]:
+            - /url: /legal/privacy
+          - link "退款政策" [ref=f5e111] [cursor=pointer]:
+            - /url: /legal/refund
+        - link "返回首页" [ref=f5e117] [cursor=pointer]:
+          - /url: /
+      - paragraph [ref=f5e121]: © 2026 OCR Knowledge Base Matcher. 保留所有权利。
+  - button "Open Next.js Dev Tools" [ref=f5e127] [cursor=pointer]

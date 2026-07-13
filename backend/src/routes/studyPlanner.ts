@@ -4,8 +4,10 @@ import { authenticate } from '../middleware/auth';
 import fs from 'fs/promises';
 import path from 'path';
 import { generateWeeklyStudyPlan, WeeklyStudyPlan } from '../services/studyPlannerService';
+import { aiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
+router.use(authenticate);
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -51,7 +53,7 @@ router.get('/', authenticate, asyncHandler(async (req: Request, res: Response) =
   }
 }));
 
-router.post('/generate', authenticate, asyncHandler(async (req: Request, res: Response) => {
+router.post('/generate', authenticate, aiLimiter, asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const plan = await generateWeeklyStudyPlan(userId);
   await saveStudyPlan(plan, userId);

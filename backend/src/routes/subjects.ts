@@ -4,20 +4,18 @@
  */
 
 import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
 import { getAllSubjects, getCurrentSubject, switchSubject } from '../services/subjectService';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/subjects
  * Get all available subjects
  */
 router.get('/', async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const subjects = await getAllSubjects(userId);
     res.json({
@@ -38,11 +36,7 @@ router.get('/', async (req, res) => {
  * Get the currently active subject
  */
 router.get('/current', async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const subject = await getCurrentSubject(userId);
     res.json({
@@ -63,11 +57,7 @@ router.get('/current', async (req, res) => {
  * Switch to a different subject
  */
 router.post('/switch', async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const { subjectId } = req.body;
     if (!subjectId) {

@@ -1,0 +1,65 @@
+Task #10: SM-2 Review Init Fix in jobProcessor
+================================================
+Date: 2026-07-11
+Plan: tier-scaffolding
+
+## What Was Done
+
+Added `initializeReview` calls after both `markNodesAsKnownWithMastery` callsites
+in `backend/src/services/jobProcessor.ts` so uploads populate the SM-2 review queue.
+
+## Changes Made to jobProcessor.ts
+
+### 1. Import added (line 36)
+```
+import { initializeReview } from './reviewService';
+```
+
+### 2. MULTIPLE path (lines 304-311)
+After the existing `markNodesAsKnownWithMastery(allMatchedNodeIds, ...)` call:
+```
+// Initialize SM-2 reviews for all matched nodes
+for (const nodeId of allMatchedNodeIds) {
+  try {
+    await initializeReview(nodeId, context.job.userId ?? '');
+  } catch (err) {
+    console.warn(`[JobProcessor] Failed to initialize review for ${nodeId}:`, err);
+  }
+}
+```
+
+### 3. SINGLE path (lines 363-369)
+After the existing `markNodesAsKnownWithMastery(matchedNodeIds, ...)` call:
+```
+// Initialize SM-2 reviews for all matched nodes
+for (const nodeId of matchedNodeIds) {
+  try {
+    await initializeReview(nodeId, context.job.userId ?? '');
+  } catch (err) {
+    console.warn(`[JobProcessor] Failed to initialize review for ${nodeId}:`, err);
+  }
+}
+```
+
+## Verification
+
+### TypeScript Check
+- `cd backend && npx tsc --noEmit` → passed (no errors)
+
+### Design Properties
+- Each `initializeReview` call is wrapped in try/catch → won't fail the job
+- Uses `context.job.userId ?? ''` → handles missing userId gracefully
+- `initializeReview` already has dedup (returns early if review entry exists)
+- Uses correct variable names per path: `allMatchedNodeIds` (MULTIPLE), `matchedNodeIds` (SINGLE)
+
+## Expected Runtime Behavior
+
+After a successful upload job:
+1. User uploads a document → job created
+2. Job processing matches OCR against knowledge tree
+3. `markNodesAsKnownWithMastery` marks matched nodes in progress
+4. **NEW**: `initializeReview` creates review entries in `data/reviews-{userId}.json`
+5. `GET /api/reviews/due` returns those nodes for SM-2 spaced repetition
+
+File created: `data/reviews-{userId}.json` per user (or `reviews.json` if no userId)
+Each entry: `{ nodeId, lastReviewed, nextReviewDate, reviewCount: 0, interval: 0, easeFactor: 2.5 }`

@@ -1,0 +1,25 @@
+Task 7 — Chat history GET does not consume quota
+===================================================
+
+Scenario: Chat history GET does not consume quota
+  Preconditions: Free user 'qa-chat-user-001' with usage.chatMessages=20
+  JWT: Valid token for qa-chat-user-001
+
+Steps:
+  1. GET /api/chat/history/default with valid JWT
+  2. Read users.json and assert usage.chatMessages === 20 (unchanged)
+
+Actual curl command:
+  curl -s -w "%{http_code}" -X GET http://localhost:3001/api/chat/history/default \
+    -H "Authorization: Bearer <jwt>"
+
+Result:
+  Status: 200
+  Body: {"success":true,"data":{"sessionId":"default","messages":[]}}
+  usage.chatMessages after request: 20 (unchanged from 20)
+
+  ASSERTION 1 (status=200): PASS
+  ASSERTION 2 (chatMessages unchanged): PASS
+  ASSERTION 3 (no quota error): PASS
+
+Conclusion: ✅ Chat history GET does not consume quota

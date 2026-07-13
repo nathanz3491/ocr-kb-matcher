@@ -1,0 +1,26 @@
+Task 6: Quiz submit does NOT consume quota
+============================================
+Endpoint: POST /api/quiz/submit
+Date: 2026-07-11T13:16:45Z
+
+Precondition: User quiztest.qa@gmail.com (free tier) with usage.quizGenerated=3
+
+Request:
+  POST /api/quiz/submit
+  Authorization: Bearer <jwt>
+  Body: {"sessionId":"test-session","answers":[]}
+
+Response: HTTP 500 (handler-level error, NOT 429)
+  {"success":false,"error":"Failed to submit quiz"}
+
+Post-request check: usage.quizGenerated = 3 (unchanged)
+
+Verification:
+  - Route did NOT return 429 (proving enforceQuota NOT applied)
+  - Quiz counter did NOT increment (proving quota middleware doesn't run)
+
+Read-only route verification:
+  - GET /api/quiz/stats -> HTTP 200 (no quota check)
+  - GET /api/quiz/session/nonexistent -> HTTP 404 (no quota check)
+
+Result: PASS - submit route correctly bypasses quota middleware.

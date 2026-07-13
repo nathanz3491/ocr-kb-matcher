@@ -1,0 +1,5 @@
+QA Scenario: saveUser persists changes atomically
+============================================================
+Modified tier to 'monthly' on user test-user-001
+Read back from users.json: tier=monthly
+PASS: true

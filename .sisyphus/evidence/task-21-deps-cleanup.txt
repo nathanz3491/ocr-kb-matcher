@@ -1,0 +1,20 @@
+Task 21: Remove @anthropic-ai/sdk from backend/package.json
+===========================================================
+Date: 2026-07-12
+
+Status: COMPLETE
+
+Actions Taken:
+1. Read backend/package.json — confirmed "@anthropic-ai/sdk": "^0.90.0" at line 15
+2. Ran `npm uninstall @anthropic-ai/sdk` in backend/
+3. Deleted stale backend/package-lock.json and regenerated via `npm install`
+
+Verification Results:
+- package.json grep: 0 matches (CLEAN)
+- Root package-lock.json grep: 0 matches (CLEAN)
+- backend/src grep: 0 matches (CLEAN — no code usages ever existed)
+- `npx tsc --noEmit` in backend/: PASS (no output, no errors)
+
+Summary:
+Dead dependency @anthropic-ai/sdk (v0.90.0) removed. 3 packages cleaned up.
+No functional impact — zero usages in codebase (Moonshot AI via openai SDK is the active provider).

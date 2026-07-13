@@ -5,20 +5,18 @@
 
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
+import { authenticate } from '../middleware/auth';
 import { getDueReviews, markAsReviewed, getReviewStats } from '../services/reviewService';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/reviews/due
  * Get reviews due for today
  */
 router.get('/due', asyncHandler(async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const dueReviews = await getDueReviews(userId);
   const stats = await getReviewStats(userId);
@@ -37,11 +35,7 @@ router.get('/due', asyncHandler(async (req, res) => {
  * Mark a topic as reviewed
  */
 router.post('/:nodeId', asyncHandler(async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Authentication required' });
-    return;
-  }
+  const userId = req.user!.userId;
 
   const { nodeId } = req.params;
   const { quality = 4 } = req.body;

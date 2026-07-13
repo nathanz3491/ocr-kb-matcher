@@ -1,0 +1,14 @@
+=== Evidence: Non-admin user gets 403 on admin endpoints ===
+
+Request:
+  GET /api/admin/users
+  Authorization: Bearer <non-admin-user-token> (newuser@test.com, role=user)
+
+Response:
+  HTTP 403 FORBIDDEN
+  {"success":false,"error":"FORBIDDEN"}
+
+Validation:
+  PASS — Non-admin requests are correctly rejected with 403.
+  The requireAdmin middleware checks both req.user.role and ADMIN_EMAILS env var.
+  The test user has role='user' and email not in ADMIN_EMAILS, so access is denied.

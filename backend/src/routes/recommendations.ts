@@ -4,20 +4,18 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
 import { getRecommendations } from '../services/recommendationService';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * GET /api/recommendations
  * Get personalized recommendations for next topics to learn
  */
 router.get('/', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ success: false, error: 'Unauthorized' });
-    return;
-  }
+  const userId = req.user!.userId;
   try {
     const recommendations = await getRecommendations(userId);
     res.json({ success: true, data: recommendations });

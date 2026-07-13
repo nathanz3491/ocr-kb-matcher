@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
 import {
   scheduleWrongQuestionReviews,
   getDueReviews,
@@ -11,14 +12,11 @@ import { generatePracticeQuestions } from '../services/wrongQuestionService';
 import { userProgressService } from '../services/userProgressService';
 
 const router = Router();
+router.use(authenticate);
 
 router.post('/schedule', async (req, res) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const { wrongResults, jobId } = req.body as {
       wrongResults: WrongQuestionResult[];
@@ -41,11 +39,7 @@ router.post('/schedule', async (req, res) => {
 
 router.get('/due', async (req, res) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const dueReviews = await getDueReviews(userId);
     res.json({ success: true, data: dueReviews });
@@ -57,11 +51,7 @@ router.get('/due', async (req, res) => {
 
 router.post('/:reviewId/submit', async (req, res) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const { reviewId } = req.params;
     const { quality } = req.body as { quality: number };
@@ -104,11 +94,7 @@ router.post('/:reviewId/submit', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     const stats = await getReviewStats(userId);
     res.json({ success: true, data: stats });

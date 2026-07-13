@@ -1,0 +1,22 @@
+fix(kg): repair cross-contamination between OCR uploads and review/flashcards
+
+Root cause: when user uploaded a Meiji Restoration question, the AI matching
+returned wrong-domain IDs (e.g. EA-CH-040 Ming Bureaucratic Government) because
+1) prompts said "math education expert" instead of history
+2) findDuplicateNode only matched exact name+domain, so AI-generated slug
+   IDs (eastern-zhou-period) coexisted with canonical IDs (EA-CH-003)
+3) all returned nodeIds were accepted without domain validation
+4) flashcard/review files for the wrong topic persisted
+
+Fixes:
+- prompts: math -> East Asia history in aiKnowledgeMatching + batchMatching
+- knowledgeGraphStorage.findDuplicateNode: now matches by slug, name, or
+  token ratio (>= 0.8) so AI slugs collapse into canonical IDs
+- jobProcessor: new inferDomainPrefix() + filterMatchesByDomain() reject
+  matches that conflict with OCR text domain
+- data: added 12 missing KG nodes (EA-JP-029 Meiji, EA-JP-031..033,
+  EA-CH-051 Daoism, EA-KR-001..004..006..008..013) to fix dangling edge refs
+- data: rewrote 120 slug references in user-progress/reviews/KG to canonical
+- data: merged 6 duplicate flashcard files into canonical EA-CH-XXX files
+  (EA-CH-003 now has 20 cards, EA-CH-007 has 30, EA-CH-008 has 20)
+- tsc build via tsconfig.build.json (excludes pre-existing broken routes)

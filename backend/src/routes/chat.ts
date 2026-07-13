@@ -4,12 +4,16 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate, requireAuth } from '../middleware/auth';
 import { getKnowledgeGraphStorage } from '../services/knowledgeGraphStorage';
 import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
+import { aiLimiter } from '../middleware/rateLimit';
+import { enforceQuota } from '../middleware/quota';
 
 const router = Router();
+router.use(authenticate);
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -93,13 +97,9 @@ async function buildKnowledgeGraphContext(userId?: string): Promise<string> {
  * POST /api/chat
  * Send a message to the AI with knowledge graph context
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', aiLimiter, requireAuth, enforceQuota('chatMessages'), async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     await loadHistories(userId);
 
@@ -183,13 +183,8 @@ RESPONSE FORMAT GUIDELINES:
   }
 });
 
-router.post('/stream', async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.write('event: error\ndata: {"error":"Unauthorized"}\n\n');
-    res.end();
-    return;
-  }
+router.post('/stream', aiLimiter, requireAuth, enforceQuota('chatMessages'), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -284,11 +279,7 @@ RESPONSE FORMAT GUIDELINES:
  */
 router.get('/history/:sessionId', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     await loadHistories(userId);
 
@@ -315,11 +306,7 @@ router.get('/history/:sessionId', async (req: Request, res: Response) => {
  */
 router.delete('/history/:sessionId', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     await loadHistories(userId);
 
@@ -345,11 +332,7 @@ router.delete('/history/:sessionId', async (req: Request, res: Response) => {
  */
 router.get('/knowledge-context', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const userId = req.user!.userId;
 
     await loadHistories(userId);
 

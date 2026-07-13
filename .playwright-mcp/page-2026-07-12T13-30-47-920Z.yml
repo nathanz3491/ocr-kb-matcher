@@ -1,0 +1,87 @@
+- generic [active] [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e12] [cursor=pointer]
+  - alert [ref=f1e16]
+  - generic [ref=f1e17]:
+    - button [ref=f1e18]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic: ⌘K
+          - button "Switch to light mode"
+          - generic:
+            - button "N Nathan":
+              - generic: "N"
+              - generic: Nathan
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Nathan
+                  - generic: nathan@dev.local
+                - generic:
+                  - link "Settings":
+                    - /url: /settings
+                  - button "Sign Out"
+        - generic:
+          - link "Home Dashboard & quick actions":
+            - /url: /
+            - generic:
+              - generic: Home
+              - generic: Dashboard & quick actions
+          - link "Import Content Build your knowledge base":
+            - /url: /import
+            - generic:
+              - generic: Import Content
+              - generic: Build your knowledge base
+          - link "Learn Study with quizzes":
+            - /url: /learn
+            - generic:
+              - generic: Learn
+              - generic: Study with quizzes
+          - link "Flashcards Spaced repetition cards":
+            - /url: /flashcards
+            - generic:
+              - generic: Flashcards
+              - generic: Spaced repetition cards
+          - link "AI Assistant Chat with your knowledge":
+            - /url: /chat
+            - generic:
+              - generic: AI Assistant
+              - generic: Chat with your knowledge
+          - link "Review Review sessions":
+            - /url: /review
+            - generic:
+              - generic: Review
+              - generic: Review sessions
+          - link "Dashboard Analytics, progress & certificates":
+            - /url: /dashboard
+            - generic:
+              - generic: Dashboard
+              - generic: Analytics, progress & certificates
+          - link "Knowledge Graph Visualize connections":
+            - /url: /knowledge-graph
+            - generic:
+              - generic: Knowledge Graph
+              - generic: Visualize connections
+        - generic:
+          - generic:
+            - link "Documentation":
+              - /url: /docs
+            - link "Help & Support":
+              - /url: /help
+          - generic: ONLINE
+    - main [ref=f1e24]:
+      - generic [ref=f1e27]:
+        - heading "Admin Panel" [level=1] [ref=f1e28]
+        - paragraph [ref=f1e29]: Manage users, tiers, and view platform statistics
+      - generic [ref=f1e30]: "Failed to load users: 404"
+      - generic [ref=f1e33]:
+        - heading "Users" [level=2] [ref=f1e35]
+        - paragraph [ref=f1e45]: No users found

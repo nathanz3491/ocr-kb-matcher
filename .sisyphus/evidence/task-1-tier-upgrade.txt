@@ -1,0 +1,33 @@
+Task 1 — Tier upgrade sets subscriptionStartedAt correctly
+========================================================
+
+WHAT: setUserTier in userService.ts now sets subscriptionStartedAt + usage.periodStart
+for paid tiers (monthly/yearly).
+
+BEFORE: setUserTier only set `tier` and `subscriptionExpiresAt` (if durationDays given).
+subscriptionStartedAt was never set, breaking period rollover for upgraded users.
+
+AFTER: When tier !== 'free', setUserTier now:
+  1. Sets subscriptionStartedAt = new Date().toISOString()
+  2. Sets usage.periodStart = same timestamp (preserving existing uploads/quizGenerated/chatMessages)
+  3. Keeps existing subscriptionExpiresAt logic unchanged
+
+CODE PATH:
+  backend/src/services/userService.ts:158-175
+  → setUserTier(userId, tier, durationDays?)
+  → When tier is 'monthly' or 'yearly':
+    updates.subscriptionStartedAt = new Date().toISOString()
+    updates.usage = { ...existing, periodStart: updates.subscriptionStartedAt }
+
+VERIFICATION:
+  - tsc --noEmit: PASS (no type errors in userService.ts)
+  - Type check: User type now has subscriptionStartedAt?: string field
+  - admin.ts:34 now uses user.subscriptionStartedAt ?? null (no cast needed)
+  - userSettings.ts:257 already uses the narrow cast pattern (unchanged, works)
+
+FILES MODIFIED:
+  - backend/src/services/userService.ts (setUserTier — added paid-tier logic)
+  - backend/src/types/auth.ts (added subscriptionStartedAt to User + UserWithoutPassword)
+  - backend/src/routes/admin.ts (removed double-cast)
+
+DATE: 2026-07-12

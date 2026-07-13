@@ -1,0 +1,20 @@
+﻿QA Scenario 2: Free-tier user 3rd upload (quota exceeded)
+==========================================================
+
+Steps:
+1. Register new user (quotatest@example.com) — gets free tier, usage.uploads: 0
+2. POST /api/upload × 2 (without file, but enforceQuota increments counter before handler)
+   -> Each returns 400 (no file) but quota increments to 1, then 2
+3. POST /api/upload × 3 (without file)
+   -> Returns 429 QUOTA_EXCEEDED
+
+3rd Request:
+-----------
+curl -v -X POST http://localhost:3001/api/upload -H "Authorization: Bearer <token>"
+
+Response:
+HTTP/1.1 429 Too Many Requests
+Body: {"success":false,"error":"QUOTA_EXCEEDED","resource":"uploads","quota":{"used":2,"limit":2,"tier":"free","resetsAt":"2026-08-01T00:00:00.000Z"},"message":"本月上传额度已用完（2/2）。升级套餐获取更多额度。"}
+
+The enforceQuota('uploads') middleware correctly stopped the 3rd upload for
+a free-tier user (limit=2).

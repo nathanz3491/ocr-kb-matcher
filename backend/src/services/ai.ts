@@ -25,6 +25,8 @@ import {
   buildUserPrompt,
   OUTPUT_SCHEMA
 } from '../prompts/matching';
+import { moonshotBreaker } from '../lib/circuitBreaker';
+import { logger } from '../lib/logger';
 
 // Maximum KB entries per request to avoid token limits
 const MAX_KB_ENTRIES_PER_REQUEST = 100;
@@ -173,9 +175,9 @@ export async function findMatches(
   const limitedNodes = kbNodes.slice(0, MAX_KB_ENTRIES_PER_REQUEST);
 
   if (kbNodes.length > MAX_KB_ENTRIES_PER_REQUEST) {
-    console.warn(
-      `[AI] Knowledge base has ${kbNodes.length} entries, ` +
-      `limiting to ${MAX_KB_ENTRIES_PER_REQUEST}`
+    logger.warn(
+      { totalEntries: kbNodes.length, limitedTo: MAX_KB_ENTRIES_PER_REQUEST },
+      'Knowledge base entries exceed limit, truncating',
     );
   }
 
@@ -184,6 +186,11 @@ export async function findMatches(
 
   // Perform matching with retry
   const result = await matchWithRetry(ocrText, limitedNodes, config);
+
+  // Circuit breaker prevented matching — return empty
+  if (result === null) {
+    return [];
+  }
 
   // Enrich matches with node information
   const enrichedMatches = result.matches.map(match => {
@@ -288,7 +295,7 @@ export async function matchWithRetry(
     duration: number;
     retryCount: number;
   };
-}> {
+} | null> {
   const cfg = config || getMoonshotConfig();
   const retries = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
   const client = createOpenAIClient(cfg);
@@ -301,20 +308,21 @@ export async function matchWithRetry(
 
   for (let attempt = 0; attempt <= retries.maxRetries; attempt++) {
     try {
-      console.log(
-        `[AI] Matching attempt ${attempt + 1}/${retries.maxRetries + 1} ` +
-        `with ${kbNodes.length} KB entries`
+      logger.info(
+        { attempt: attempt + 1, maxAttempts: retries.maxRetries + 1, kbEntries: kbNodes.length },
+        'AI matching attempt',
       );
 
-      const completion = await client.chat.completions.create({
+      const completion = await moonshotBreaker.fire({
+        client,
         model: cfg.model,
         max_tokens: 4096,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: userPrompt },
         ],
         temperature: 1,
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_object' },
       });
 
       const responseContent = completion.choices[0]?.message?.content || '';
@@ -328,7 +336,6 @@ export async function matchWithRetry(
         );
       }
 
-      // Parse the response
       const parsed = parseMatchingResponse(responseContent);
 
       if (!parsed.success) {
@@ -342,16 +349,15 @@ export async function matchWithRetry(
 
       const duration = Date.now() - startTime;
 
-      // Extract token usage
       const tokenUsage: TokenUsage = {
         promptTokens: completion.usage?.prompt_tokens || 0,
         completionTokens: completion.usage?.completion_tokens || 0,
         totalTokens: completion.usage?.total_tokens || 0
       };
 
-      console.log(
-        `[AI] Matching completed in ${duration}ms ` +
-        `(retries: ${retryCount}, tokens: ${tokenUsage.totalTokens})`
+      logger.info(
+        { durationMs: duration, retryCount, totalTokens: tokenUsage.totalTokens },
+        'AI matching completed',
       );
 
       return {
@@ -368,9 +374,17 @@ export async function matchWithRetry(
       const error = rawError instanceof Error
         ? rawError
         : new Error(typeof rawError === 'object' && rawError !== null ? JSON.stringify(rawError) : String(rawError));
+
+      if (moonshotBreaker.opened) {
+        logger.warn(
+          { attempt: attempt + 1 },
+          'Moonshot API circuit breaker open — returning empty result',
+        );
+        return null;
+      }
+
       const isRetryable = attempt < retries.maxRetries;
 
-      // Determine error type
       let errorCode = AIServiceErrorCode.API_ERROR;
       let shouldRetry = isRetryable;
 
@@ -384,10 +398,8 @@ export async function matchWithRetry(
           errorCode = AIServiceErrorCode.RATE_LIMIT;
           shouldRetry = isRetryable && retries.retryOnRateLimit;
         } else if (error.status >= 500) {
-          // Server errors are retryable
           shouldRetry = isRetryable;
         } else if (error.status === 401 || error.status === 403) {
-          // Auth errors are not retryable
           shouldRetry = false;
         }
       }
@@ -400,20 +412,19 @@ export async function matchWithRetry(
       );
 
       if (!shouldRetry) {
-        console.error(`[AI] Non-retryable error: ${lastError.message}`);
+        logger.error({ err: lastError.message }, 'Non-retryable AI error');
         break;
       }
 
-      // Calculate backoff delay
       const delay = calculateBackoffDelay(
         attempt,
         retries.baseDelay,
         retries.maxDelay
       );
 
-      console.warn(
-        `[AI] Attempt ${attempt + 1} failed (${errorCode}), ` +
-        `retrying in ${Math.round(delay)}ms...`
+      logger.warn(
+        { attempt: attempt + 1, errorCode, delayMs: Math.round(delay) },
+        'AI attempt failed, retrying',
       );
 
       retryCount++;
@@ -421,7 +432,6 @@ export async function matchWithRetry(
     }
   }
 
-  // All retries exhausted
   const finalError = lastError || createAIError(
     AIServiceErrorCode.API_ERROR,
     'All retry attempts failed',
@@ -429,7 +439,7 @@ export async function matchWithRetry(
     false
   );
 
-  console.error(`[AI] Matching failed after ${retryCount} retries: ${finalError.message}`);
+  logger.error({ retryCount, err: finalError.message }, 'AI matching failed after all retries');
   throw finalError;
 }
 
@@ -444,16 +454,17 @@ export async function testAIConnection(): Promise<boolean> {
     const config = getMoonshotConfig();
     const client = createOpenAIClient(config);
 
-    // Make a simple request to test connection
-    await client.chat.completions.create({
+    await moonshotBreaker.fire({
+      client,
       model: config.model,
       max_tokens: 10,
-      messages: [{ role: 'user', content: 'Hello' }]
+      messages: [{ role: 'user', content: 'Hello' }],
+      temperature: 0,
     });
 
     return true;
   } catch (error) {
-    console.error('[AI] Connection test failed:', error);
+    logger.error({ err: error }, 'AI connection test failed');
     return false;
   }
 }

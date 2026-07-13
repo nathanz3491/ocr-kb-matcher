@@ -33,8 +33,8 @@ const ALLOWED_EXTENSIONS = [
   '.pdf', '.docx', '.pptx', '.txt', '.md',
 ];
 
-// Maximum file size: 50MB (for larger PDFs and PPTs)
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+// Maximum file size: from env or default 50MB (for larger PDFs and PPTs)
+const MAX_FILE_SIZE = (parseInt(process.env.MAX_UPLOAD_SIZE_MB || '50', 10)) * 1024 * 1024;
 
 // Maximum number of files per upload
 export const MAX_FILES_COUNT = 20;
@@ -173,10 +173,12 @@ export function handleMulterError(
   if (err instanceof multer.MulterError) {
     // Multer-specific errors
     let message = 'Upload error';
+    let statusCode = 400;
     
     switch (err.code) {
       case 'LIMIT_FILE_SIZE':
-        message = `File too large. Maximum file size is 50MB.`;
+        statusCode = 413;
+        message = `文件过大，最大允许${MAX_FILE_SIZE / (1024 * 1024)}MB`;
         break;
       case 'LIMIT_FILE_COUNT':
         message = `Too many files. Maximum ${MAX_FILES_COUNT} files allowed per request.`;
@@ -191,7 +193,7 @@ export function handleMulterError(
         message = `Upload error: ${err.message}`;
     }
 
-    return res.status(400).json({
+    return res.status(statusCode).json({
       success: false,
       error: message,
     });

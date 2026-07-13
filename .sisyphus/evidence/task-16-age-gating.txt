@@ -1,0 +1,45 @@
+Task 16 — Age/Consent Gating on Signup
+========================================
+Date: 2026-07-12
+Plan: monetization-prep.md
+
+Changes Made
+-------------
+1. backend/src/types/auth.ts
+   - Added `dateOfBirth?: string` to User and UserWithoutPassword interfaces
+   - Added `requiresParentalConsent?: boolean` to User and UserWithoutPassword interfaces
+
+2. backend/src/db/sqlite.ts
+   - Added `date_of_birth TEXT` column to users table (nullable)
+   - Added `requires_parental_consent INTEGER NOT NULL DEFAULT 0` column to users table
+
+3. backend/src/services/userService.ts
+   - rowToUser: Parses `date_of_birth` and `requires_parental_consent` from DB rows
+   - createUser: Accepts and stores `dateOfBirth` + `requiresParentalConsent` in INSERT
+   - updateUser: Updates `date_of_birth` and `requires_parental_consent` columns
+   - saveUser: Handles both columns in INSERT...ON CONFLICT upsert
+
+4. backend/src/routes/auth.ts
+   - Added `isMinor()` helper: Computes age from DOB, returns true if < 18
+   - Added `dateOfBirth` field to registerSchema (optional string)
+   - Registration handler extracts `dateOfBirth`, computes `requiresParentalConsent`
+   - Passes both fields to `createUser()`
+   - Logs via logger.info when a minor registers
+
+5. backend/src/routes/parentMonitor.ts
+   - Added `checkStudentConsent()` helper: Returns error message if student is a minor without consent
+   - Applied to all 4 student-data endpoints: overview, knowledge-graph, reviews, quiz
+   - Returns 403 with message "Parental consent required to access this student's data"
+   - Logs via logger.warn when blocked
+
+Behavior
+---------
+- dateOfBirth is OPTIONAL — existing users unaffected
+- Minors (<18) can still register and use core OCR/AI features
+- Minors get `requiresParentalConsent: true` flag stored in DB
+- Parent-monitor endpoints return 403 for unconsented minors
+- No parental ID numbers stored (privacy)
+
+TypeScript Check
+-----------------
+- cd backend && npx tsc --noEmit: PASS (0 errors)

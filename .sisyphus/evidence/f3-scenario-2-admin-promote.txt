@@ -1,0 +1,2 @@
+Upgrade response: status=403, body={"success":false,"error":"FORBIDDEN"}
+Upload after upgrade: status=400

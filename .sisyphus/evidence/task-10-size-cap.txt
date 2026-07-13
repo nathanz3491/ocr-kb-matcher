@@ -1,0 +1,26 @@
+Task 10 — Server-side upload size cap
+======================================
+Date: 2026-07-12
+
+Changes Made:
+  1. backend/src/config/tiers.ts
+     - Added maxFileSizeMB: 20 (free), 100 (monthly/yearly) to TIER_LIMITS
+
+  2. backend/src/middleware/upload.ts
+     - MAX_FILE_SIZE now reads from MAX_UPLOAD_SIZE_MB env var (default 50MB)
+     - handleMulterError returns 413 + Chinese message for LIMIT_FILE_SIZE
+
+  3. backend/src/routes/upload.ts
+     - Tier-based file size check in POST / (single + multiple)
+     - Tier-based file size check in POST /single
+     - Tier-based file size check in POST /multiple
+     - Rejects with 413 + Chinese: 文件大小超过 {tier}套餐限制 ({limit}MB)
+
+QA Result:
+  - Precondition: free-tier user, 25MB test file (> free limit of 20MB)
+  - curl POST /api/upload/single
+  - HTTP Status: 413
+  - Response body: {"success":false,"error":"文件大小超过 free套餐限制 (20MB)"}
+  - PASS
+
+TypeScript Check: cd backend && npx tsc --noEmit -> PASS (only pre-existing ai.ts error)

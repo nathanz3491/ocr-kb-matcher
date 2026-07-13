@@ -1,0 +1,32 @@
+Task 1 — 429 QUOTA_EXCEEDED toast links to /settings/subscription
+==================================================================
+
+WHAT: QuotaExceededHandler.tsx now links to the correct subscription upgrade page.
+
+BEFORE:
+  QuotaExceededHandler.tsx:63 — href="/admin"
+  → Free users clicking the upgrade link would hit 403 Forbidden (/admin is admin-only)
+  → UX hall-of-shame: the primary CTA leads to an access-denied page
+
+AFTER:
+  QuotaExceededHandler.tsx:63 — href="/settings/subscription"
+  → Links to the subscription management page (accessible to all authenticated users)
+  → /settings/subscription is the intended destination for self-serve tier upgrades
+
+FILES MODIFIED:
+  frontend/components/notification/QuotaExceededHandler.tsx:
+    - Line 64: href="/admin" → href="/settings/subscription"
+    - Line 22: Updated JSDoc comment to reflect new link target
+
+VERIFICATION:
+  - cd frontend && npx tsc --noEmit: PASS
+  - grep "href" frontend/components/notification/QuotaExceededHandler.tsx:
+    Contains "/settings/subscription"
+    Does NOT contain "/admin"
+
+REGENERATION CHECK:
+  - No import changes needed (next/link already imported)
+  - Component logic unchanged (only the link target changed)
+  - No new dependencies introduced
+
+DATE: 2026-07-12

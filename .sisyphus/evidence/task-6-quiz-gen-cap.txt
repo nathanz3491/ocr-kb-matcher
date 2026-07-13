@@ -1,0 +1,15 @@
+Task 6: Quiz generation at free tier cap (3/mo)
+=================================================
+Endpoint: POST /api/quiz/generate/:jobId
+Date: 2026-07-11T13:15:00Z
+
+Precondition: User quiztest.qa@gmail.com (free tier) with usage.quizGenerated=3
+
+Request:
+  POST /api/quiz/generate/test-job-id
+  Authorization: Bearer <jwt>
+
+Response: HTTP 429
+  {"success":false,"error":"QUOTA_EXCEEDED","resource":"quizGenerated","quota":{"used":3,"limit":3,"tier":"free","resetsAt":"2026-08-01T00:00:00.000Z"}}
+
+Result: PASS - quota enforcement correctly blocks generation at free tier cap.

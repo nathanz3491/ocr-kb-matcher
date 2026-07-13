@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/errorHandler';
+import { authLimiter } from '../middleware/rateLimit';
 import { AppError } from '../middleware/errorHandler';
 import { validateBody } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { authenticate, checkLoginLock, recordFailedAttempt, clearLoginAttempts, DUMMY_PASSWORD_HASH } from '../middleware/auth';
 import {
   getUserByEmail,
   getUserById,
@@ -19,7 +20,13 @@ import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  parseAccessToken,
 } from '../services/jwtService';
+import {
+  revokeRefreshToken,
+  isRefreshTokenRevoked,
+  revokeAccessToken,
+} from '../services/tokenRevocation';
 import { sendVerificationEmail } from '../services/emailService';
 import { validateEmail } from '../services/emailValidation';
 import {
@@ -28,14 +35,35 @@ import {
   verifyAndLinkCode,
   getStudentLinks,
 } from '../services/parentLinkService';
+import { logAuthEvent } from '../middleware/auditLog';
+import { logger } from '../lib/logger';
+import {
+  computeFingerprint,
+  canStartTrial,
+  recordTrialStart,
+  logAbuseAttempt,
+} from '../services/trialGuard';
 
 const router = Router();
+
+function isMinor(dateOfBirth: string): boolean {
+  const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age < 18;
+}
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   accountType: z.enum(['student', 'parent']).optional().default('student'),
+  dateOfBirth: z.string().optional(),
 });
 
 const verifyEmailSchema = z.object({
@@ -62,6 +90,7 @@ function generateVerificationCode(): string {
 
 router.post(
   '/resend-code',
+  authLimiter,
   validateBody(resendCodeSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.body;
@@ -94,9 +123,10 @@ router.post(
 
 router.post(
   '/register',
+  authLimiter,
   validateBody(registerSchema),
   asyncHandler(async (req: Request, res: Response) => {
-    const { email, password, name, accountType } = req.body;
+    const { email, password, name, accountType, dateOfBirth } = req.body;
 
     const validation = await validateEmail(email);
     if (!validation.valid) {
@@ -118,9 +148,29 @@ router.post(
       return;
     }
 
+    // Trial abuse prevention
+    const fingerprint = computeFingerprint(
+      req.headers['user-agent'],
+      req.headers['accept-language'],
+    );
+    if (!canStartTrial(email, fingerprint)) {
+      logAbuseAttempt(email, fingerprint, req.ip);
+      res.status(403).json({
+        success: false,
+        error: '您已经使用过免费试用，无法再次体验。如需继续使用，请升级到付费套餐。',
+      });
+      return;
+    }
+
     const passwordHash = await hashPassword(password);
     const verificationCode = generateVerificationCode();
     const verificationExpires = Date.now() + 15 * 60 * 1000;
+
+    const requiresParentalConsent = dateOfBirth ? isMinor(dateOfBirth) : false;
+
+    if (requiresParentalConsent) {
+      logger.info({ email, dateOfBirth }, 'Minor user registered — parental consent flag set');
+    }
 
     const user = await createUser({
       email,
@@ -130,6 +180,8 @@ router.post(
       emailVerificationCode: verificationCode,
       emailVerificationExpires: verificationExpires,
       accountType: accountType || 'student',
+      dateOfBirth: dateOfBirth || undefined,
+      requiresParentalConsent,
       settings: {
         darkMode: false,
         emailNotifications: true,
@@ -149,6 +201,14 @@ router.post(
     sendVerificationEmail(email, verificationCode, name).catch((err) => {
       console.error('Failed to send verification email:', err.message);
     });
+
+    // Record trial start for abuse prevention
+    try {
+      recordTrialStart(email, fingerprint, req.ip, 'free');
+    } catch (err) {
+      console.error('[Trial] Failed to record trial start:', err);
+      // Non-fatal — user can still use the app
+    }
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -203,21 +263,45 @@ router.post(
 
 router.post(
   '/login',
+  authLimiter,
   validateBody(loginSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
+    // ── Check account lock ──────────────────────────────────
+    const lock = checkLoginLock(email);
+    if (lock.locked) {
+      logAuthEvent('login_locked', {
+        email,
+        ip: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'] as string | undefined,
+      });
+      res.set('Retry-After', String(lock.retryAfter));
+      res.status(429).json({ success: false, error: 'Account temporarily locked due to too many failed attempts' });
+      return;
+    }
+
     const user = await getUserByEmail(email);
-    if (!user) {
+
+    // ── Constant-time comparison ────────────────────────────
+    // Always run bcrypt.compare (even without a matching user)
+    // so that 'no user' and 'wrong password' take indistinguishable time.
+    const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+    const isValidPassword = await verifyPassword(password, passwordHash);
+
+    if (!user || !isValidPassword) {
+      await recordFailedAttempt(email);
+      logAuthEvent('login_failed', {
+        email,
+        ip: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'] as string | undefined,
+      });
       res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
 
-    const isValidPassword = await verifyPassword(password, user.passwordHash);
-    if (!isValidPassword) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
-      return;
-    }
+    // ── Successful login ────────────────────────────────────
+    clearLoginAttempts(email);
 
     if (!user.emailVerified) {
       res.status(403).json({ success: false, error: 'Please verify your email first' });
@@ -228,6 +312,13 @@ router.post(
     const refreshToken = generateRefreshToken(user);
 
     const userWithoutPassword = toUserWithoutPassword(user);
+
+    logAuthEvent('login_success', {
+      userId: user.id,
+      email,
+      ip: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
 
     res.json({
       success: true,
@@ -242,11 +333,19 @@ router.post(
 
 router.post(
   '/refresh',
+  authLimiter,
   validateBody(refreshSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     const payload = verifyRefreshToken(refreshToken);
+
+    // Check if refresh token has been revoked (one-time use)
+    if (isRefreshTokenRevoked(payload.jti)) {
+      res.status(401).json({ success: false, error: 'Refresh token has been revoked' });
+      return;
+    }
+
     const user = await getUserById(payload.userId);
 
     if (!user) {
@@ -258,6 +357,11 @@ router.post(
       res.status(403).json({ success: false, error: 'Please verify your email first' });
       return;
     }
+
+    // Revoke the old refresh token (one-time use rotation)
+    const decoded = parseAccessToken(refreshToken);
+    const refreshExpiresAt = decoded?.exp ? decoded.exp * 1000 : Date.now() + 7 * 24 * 60 * 60 * 1000;
+    revokeRefreshToken(payload.jti, payload.userId, refreshExpiresAt);
 
     const newAccessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
@@ -274,7 +378,30 @@ router.post(
 
 router.post(
   '/logout',
-  asyncHandler(async (_req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    let userId: string | undefined;
+
+    if (authHeader) {
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        const token = parts[1];
+        const payload = parseAccessToken(token);
+
+        if (payload?.jti) {
+          userId = payload.userId as string | undefined;
+          const expiresAt = payload.exp ? payload.exp * 1000 : Date.now() + 15 * 60 * 1000;
+          revokeAccessToken(payload.jti, expiresAt);
+        }
+      }
+    }
+
+    logAuthEvent('logout', {
+      userId,
+      ip: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
+
     res.json({ success: true });
   })
 );

@@ -1,0 +1,39 @@
+Task 6 — Basic CI Pipeline (GitHub Actions)
+============================================
+
+Date: 2026-07-12
+Executor: Sisyphus-Junior
+
+Files Created:
+  - .github/workflows/ci.yml (28 lines)
+
+Workflow Steps (mirror plan spec):
+  1. actions/checkout@v4
+  2. actions/setup-node@v4 (node-version: "20")
+  3. npm ci (root workspace — installs backend + frontend deps)
+  4. cd backend && npx tsc --noEmit
+  5. cd frontend && npm ci
+  6. cd frontend && npm run lint
+  7. cd frontend && npx tsc --noEmit
+
+Trigger: every push + every pull request (on: [push, pull_request])
+
+Local Verification Results:
+  - Backend tsc --noEmit: FAILS with 1 pre-existing error
+    File: backend/src/lib/logger.ts:49
+    Error: TS2769 - No overload matches this call (pino-http type mismatch)
+    NOTE: This is a pre-existing issue, not caused by this task.
+
+  - Frontend npm run lint: FAILS with 74 errors, 124 warnings (pre-existing)
+    NOTE: All are pre-existing issues across many components.
+
+  - Frontend tsc --noEmit: FAILS with 7 pre-existing type errors
+    File: app/(protected)/graph-editor/page.tsx (5 errors — missing props, implicit any)
+    File: components/loading/LoadingScreen.tsx (1 error — missing module)
+    NOTE: All are pre-existing issues. Frontend build ignores TS errors via next.config.ts.
+
+Conclusion:
+  - CI workflow file is correctly configured per plan spec.
+  - All CI steps will execute on every push and PR.
+  - Pre-existing type and lint errors will be surfaced by CI (expected).
+  - Fixing pre-existing issues is out of scope for this task.

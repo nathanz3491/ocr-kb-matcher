@@ -24,6 +24,7 @@ import kbRoutes from './kb';
 import graphEditorRouter from './graphEditor';
 import studyPlannerRouter from './studyPlanner';
 import authRoutes from './auth';
+import adminRoutes from './admin';
 import userSettingsRoutes from './userSettings';
 import parentMonitorRoutes from './parentMonitor';
 
@@ -57,6 +58,7 @@ router.use('/api/kb', kbRoutes);
 router.use('/api/graph-editor', graphEditorRouter);
 router.use('/api/study-plan', studyPlannerRouter);
 router.use('/api/auth', authRoutes);
+router.use('/api/admin', adminRoutes);
 router.use('/api/user', userSettingsRoutes);
 router.use('/api/parent-monitor', parentMonitorRoutes);
 

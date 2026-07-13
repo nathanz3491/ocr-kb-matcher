@@ -8,10 +8,12 @@
 
 import { Router, Request, Response } from 'express';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import { authenticate } from '../middleware/auth';
 import { getAllEntries, getEntryById } from '../services/knowledgeBase';
 import type { ApiResponse, KnowledgeBaseEntry } from '../../../shared/types';
 
 const router = Router();
+router.use(authenticate);
 
 /**
  * @route   GET /api/kb

@@ -1,0 +1,156 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - button [ref=f2e3]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic: ⌘K
+          - button "Switch to dark mode"
+          - generic:
+            - link "Sign In":
+              - /url: /auth/login
+            - link "Get Started":
+              - /url: /auth/register
+    - generic [ref=f2e10]:
+      - generic [ref=f2e11]: Legal
+      - heading "隐私政策" [level=1] [ref=f2e16]
+      - paragraph [ref=f2e17]: Privacy Policy
+      - paragraph [ref=f2e18]: "最后更新：2026年7月12日 | Last updated: July 12, 2026"
+    - generic [ref=f2e19]:
+      - generic [ref=f2e20]:
+        - generic [ref=f2e26]:
+          - heading "信息收集" [level=2] [ref=f2e27]
+          - paragraph [ref=f2e28]: Information We Collect
+        - generic [ref=f2e29]:
+          - paragraph [ref=f2e30]: 为了向您提供服务，我们收集以下类型的信息：
+          - list [ref=f2e31]:
+            - listitem [ref=f2e32]:
+              - strong [ref=f2e33]: 账户信息
+              - text: ：电子邮箱地址、姓名（可选）、注册时间；
+            - listitem [ref=f2e34]:
+              - strong [ref=f2e35]: 使用数据
+              - text: ：上传的文档、图片及 OCR 提取的文本内容，知识图谱节点与关系数据，测验与闪卡的学习记录；
+            - listitem [ref=f2e36]:
+              - strong [ref=f2e37]: 设备信息
+              - text: ：浏览器类型、操作系统、IP 地址（用于安全审计与反欺诈）；
+            - listitem [ref=f2e38]:
+              - strong [ref=f2e39]: 支付信息
+              - text: ：如购买付费套餐，支付由微信支付或支付宝处理，我们不直接存储银行卡信息。
+          - paragraph [ref=f2e40]: We collect account info (email, name), usage data (uploaded documents, OCR text, graph data, quiz/flashcard records), device info (browser, OS, IP for security), and payment info handled by third-party processors (WeChat Pay / Alipay).
+      - generic [ref=f2e41]:
+        - generic [ref=f2e48]:
+          - heading "信息使用" [level=2] [ref=f2e49]
+          - paragraph [ref=f2e50]: How We Use Information
+        - generic [ref=f2e51]:
+          - paragraph [ref=f2e52]: 我们使用您的信息用于以下目的：
+          - list [ref=f2e53]:
+            - listitem [ref=f2e54]: 提供、维护和改进平台功能（如 AI 知识提取、个性化测验推荐）；
+            - listitem [ref=f2e55]: 生成学习进度分析报告与知识掌握度统计；
+            - listitem [ref=f2e56]: 保障账户安全，检测和防止欺诈、滥用行为；
+            - listitem [ref=f2e57]: 发送服务通知（如账户验证、套餐到期提醒）；
+            - listitem [ref=f2e58]: 遵守法律法规要求或响应合法的法律程序。
+          - paragraph [ref=f2e59]: 我们不会将您的个人数据用于与您使用本平台无关的广告定向推送。
+          - paragraph [ref=f2e60]: We use your data to operate and improve the Platform, generate learning analytics, ensure security, send service notifications, and comply with legal obligations. We do not use your data for unrelated ad targeting.
+      - generic [ref=f2e61]:
+        - generic [ref=f2e70]:
+          - heading "信息共享" [level=2] [ref=f2e71]
+          - paragraph [ref=f2e72]: Information Sharing
+        - generic [ref=f2e73]:
+          - paragraph [ref=f2e74]: 我们高度重视您的隐私，不会出售您的个人信息。仅在以下有限情形下可能共享数据：
+          - list [ref=f2e75]:
+            - listitem [ref=f2e76]:
+              - strong [ref=f2e77]: 服务提供商
+              - text: ：向提供服务器托管、AI 接口（Moonshot AI）的技术服务商共享必要数据，且受合同约束仅用于提供服务；
+            - listitem [ref=f2e78]:
+              - strong [ref=f2e79]: 法律要求
+              - text: ：根据法律法规、法院命令或政府要求披露；
+            - listitem [ref=f2e80]:
+              - strong [ref=f2e81]: 业务转让
+              - text: ：如发生合并、收购或资产出售，我们将提前通知并确保接收方遵守同等隐私保护标准；
+            - listitem [ref=f2e82]:
+              - strong [ref=f2e83]: 经您同意
+              - text: ：在获得您明确授权的其他情形。
+          - paragraph [ref=f2e84]: We do not sell your personal information. Data is shared only with service providers (hosting, AI APIs) under contract, when required by law, during business transfers with notice, or with your explicit consent.
+      - generic [ref=f2e85]:
+        - generic [ref=f2e91]:
+          - heading "数据存储与安全" [level=2] [ref=f2e92]
+          - paragraph [ref=f2e93]: Data Storage & Security
+        - generic [ref=f2e94]:
+          - paragraph [ref=f2e95]: 您的数据存储于中国大陆境内的服务器上。我们采用 SQLite 数据库存储用户数据，并通过以下措施保障安全：
+          - list [ref=f2e96]:
+            - listitem [ref=f2e97]: 传输层使用 HTTPS/TLS 加密；
+            - listitem [ref=f2e98]: 密码经 bcrypt 哈希处理后存储，明文密码不可恢复；
+            - listitem [ref=f2e99]: 定期自动备份数据库，保留 30 天本地备份及 90 天云端备份；
+            - listitem [ref=f2e100]: 访问控制与审计日志，防止未授权访问。
+          - paragraph [ref=f2e101]: 尽管我们采取合理措施保护数据，互联网传输不存在绝对安全。如发生数据泄露事件，我们将按照法律法规要求及时通知受影响用户。
+          - paragraph [ref=f2e102]: Data is stored on servers in mainland China. We use HTTPS/TLS, bcrypt password hashing, automated backups (30 days local / 90 days cloud), and access controls. No internet transmission is 100% secure; we will notify users promptly in case of a breach as required by law.
+      - generic [ref=f2e103]:
+        - generic [ref=f2e110]:
+          - heading "用户权利" [level=2] [ref=f2e111]
+          - paragraph [ref=f2e112]: Your Rights
+        - generic [ref=f2e113]:
+          - paragraph [ref=f2e114]: 根据《中华人民共和国个人信息保护法》（PIPL），您享有以下权利：
+          - list [ref=f2e115]:
+            - listitem [ref=f2e116]:
+              - strong [ref=f2e117]: 查阅与复制
+              - text: ：有权查阅我们持有的您的个人信息，并申请复制；
+            - listitem [ref=f2e118]:
+              - strong [ref=f2e119]: 更正
+              - text: ：有权要求更正不准确或不完整的个人信息；
+            - listitem [ref=f2e120]:
+              - strong [ref=f2e121]: 删除
+              - text: ：在特定情形下有权要求删除个人信息（如撤回同意、服务终止）；
+            - listitem [ref=f2e122]:
+              - strong [ref=f2e123]: 限制处理
+              - text: ：有权在争议期间要求限制对个人信息的处理；
+            - listitem [ref=f2e124]:
+              - strong [ref=f2e125]: 撤回同意
+              - text: ：有权随时撤回此前给予的同意，不影响撤回前已进行的处理活动的效力。
+          - paragraph [ref=f2e126]: 行使上述权利请通过本页底部联系方式与我们联系，我们将在 15 个工作日内响应。
+          - paragraph [ref=f2e127]: Under PIPL, you have the right to access, correct, delete, restrict processing of, and withdraw consent for your personal information. Contact us below; we will respond within 15 business days.
+      - generic [ref=f2e128]:
+        - generic [ref=f2e133]:
+          - heading "Cookie 与类似技术" [level=2] [ref=f2e134]
+          - paragraph [ref=f2e135]: Cookies & Similar Technologies
+        - generic [ref=f2e136]:
+          - paragraph [ref=f2e137]: 本平台使用 Cookie 和本地存储（LocalStorage）以保障基本功能运行：
+          - list [ref=f2e138]:
+            - listitem [ref=f2e139]:
+              - strong [ref=f2e140]: 必要 Cookie
+              - text: ：用于维持登录状态（JWT Token 存储）和主题偏好；
+            - listitem [ref=f2e141]:
+              - strong [ref=f2e142]: 分析 Cookie
+              - text: ：我们使用自托管的匿名统计工具了解功能使用情况，不追踪个人身份；
+            - listitem [ref=f2e143]:
+              - strong [ref=f2e144]: 第三方追踪
+              - text: ：我们不使用 Google Analytics、Facebook Pixel 等第三方追踪工具。
+          - paragraph [ref=f2e145]: 您可以通过浏览器设置清除 Cookie 或拒绝 Cookie，但可能导致部分功能（如保持登录）无法正常使用。
+          - paragraph [ref=f2e146]: We use essential cookies for authentication and theme preferences, plus self-hosted anonymous analytics. We do not use third-party trackers like Google Analytics or Facebook Pixel. Disabling cookies may affect login persistence.
+      - generic [ref=f2e147]:
+        - generic [ref=f2e153]:
+          - heading "联系方式" [level=2] [ref=f2e154]
+          - paragraph [ref=f2e155]: Contact Us
+        - generic [ref=f2e156]:
+          - paragraph [ref=f2e157]: 如您对本隐私政策有任何疑问、投诉或希望行使您的权利，请通过以下方式联系我们：
+          - link "zimonathanzhou@outlook.com" [ref=f2e162] [cursor=pointer]:
+            - /url: mailto:zimonathanzhou@outlook.com?subject=Privacy%20Inquiry
+          - paragraph [ref=f2e163]: 我们将在收到您的请求后 15 个工作日内予以回复。如涉及重大隐私政策变更，我们将通过邮件或平台公告提前通知您。
+          - paragraph [ref=f2e164]: For privacy questions, complaints, or to exercise your rights, email us at zimonathanzhou@outlook.com. We will respond within 15 business days. Major policy changes will be notified via email or platform announcement.
+      - generic [ref=f2e166]:
+        - generic [ref=f2e167]:
+          - link "服务条款" [ref=f2e168] [cursor=pointer]:
+            - /url: /legal/terms
+          - link "退款政策" [ref=f2e173] [cursor=pointer]:
+            - /url: /legal/refund
+        - link "返回首页" [ref=f2e179] [cursor=pointer]:
+          - /url: /
+      - paragraph [ref=f2e183]: © 2026 OCR Knowledge Base Matcher. 保留所有权利。
+  - button "Open Next.js Dev Tools" [ref=f2e189] [cursor=pointer]

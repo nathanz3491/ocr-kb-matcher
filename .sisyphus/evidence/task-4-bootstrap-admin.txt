@@ -1,0 +1,6 @@
+QA Scenario: bootstrapAdmin promotes matching emails
+============================================================
+Set ADMIN_EMAILS='admin@test.com'
+Called bootstrapAdmin()
+Read back from users.json: role=admin
+PASS: true

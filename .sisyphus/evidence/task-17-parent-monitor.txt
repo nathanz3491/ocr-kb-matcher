@@ -1,0 +1,31 @@
+Task 17 — Parent-Monitor Compliance Decision
+==============================================
+Date: 2026-07-12
+Decision: DISABLE for MVP (Option B)
+
+Changes Made:
+1. COMPLIANCE.md — New file documenting the decision rationale (PIPL Article 31),
+   gaps in current implementation, and path to re-enable
+
+2. backend/src/routes/parentMonitor.ts — Added disabled middleware that returns
+   HTTP 503 for ALL requests before any route matching. Preserved existing
+   route code for future re-enablement.
+
+3. frontend/app/parent-monitor/page.tsx — Replaced full parent dashboard UI
+   with a "temporarily disabled" notice referencing COMPLIANCE.md.
+
+4. frontend/components/navigation/Navigation.tsx — Commented out the
+   parent-monitor nav link (previously shown for accountType === 'parent').
+
+TypeScript Verification:
+- Backend: npx tsc --noEmit → PASS (no errors)
+- Frontend: npx tsc --noEmit → PASS (only pre-existing errors in
+  graph-editor/page.tsx and LoadingScreen.tsx)
+
+Re-enable Checklist (from COMPLIANCE.md):
+1. Explicit parental consent flow (signed + timestamped)
+2. Separate parent account type
+3. Audit log of all parent access to student data
+4. Data export and deletion wired to parent-managed flow
+5. Rate limiting for parent-monitor endpoints
+6. Notification to student when parent views data

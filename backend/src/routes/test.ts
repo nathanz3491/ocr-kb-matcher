@@ -12,6 +12,7 @@ import path from 'path';
 import * as fs from 'fs/promises';
 import { extractText, validateImage, cleanupTempFiles } from '../services/ocr';
 import { OCROptions } from '../types/ocr';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -199,6 +200,50 @@ router.post(
         error: `Cleanup error: ${(error as Error).message}`,
       });
     }
+  }
+);
+
+/**
+ * GET /api/test/require-auth
+ * Test requireAuth middleware
+ */
+router.get(
+  '/require-auth',
+  requireAuth,
+  async (_req: Request, res: Response) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).json({
+        success: false,
+        error: 'Test endpoint not available in production',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Authenticated request passed requireAuth',
+    });
+  }
+);
+
+/**
+ * GET /api/test/require-admin
+ * Test requireAdmin middleware
+ */
+router.get(
+  '/require-admin',
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).json({
+        success: false,
+        error: 'Test endpoint not available in production',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Admin request passed requireAdmin',
+    });
   }
 );
 

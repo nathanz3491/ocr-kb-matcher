@@ -1,0 +1,186 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e260] [cursor=pointer]
+  - alert [ref=e264]
+  - generic [ref=e265]:
+    - button [ref=e266]
+    - generic:
+      - generic:
+        - generic:
+          - link "KIP KNOWLEDGE INTELLIGENCE PLATFORM":
+            - /url: /
+            - generic:
+              - text: KIP
+              - paragraph: KNOWLEDGE INTELLIGENCE PLATFORM
+          - generic:
+            - generic:
+              - textbox "Search topics, quizzes, flashcards..."
+              - generic: ⌘K
+          - button "Switch to light mode"
+          - generic:
+            - button "N Nathan":
+              - generic: "N"
+              - generic: Nathan
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Nathan
+                  - generic: nathan@dev.local
+                - generic:
+                  - link "Settings":
+                    - /url: /settings
+                  - button "Sign Out"
+        - generic:
+          - link "Home Dashboard & quick actions":
+            - /url: /
+            - generic:
+              - generic: Home
+              - generic: Dashboard & quick actions
+          - link "Import Content Build your knowledge base":
+            - /url: /import
+            - generic:
+              - generic: Import Content
+              - generic: Build your knowledge base
+          - link "Learn Study with quizzes":
+            - /url: /learn
+            - generic:
+              - generic: Learn
+              - generic: Study with quizzes
+          - link "Flashcards Spaced repetition cards":
+            - /url: /flashcards
+            - generic:
+              - generic: Flashcards
+              - generic: Spaced repetition cards
+          - link "AI Assistant Chat with your knowledge":
+            - /url: /chat
+            - generic:
+              - generic: AI Assistant
+              - generic: Chat with your knowledge
+          - link "Review Review sessions":
+            - /url: /review
+            - generic:
+              - generic: Review
+              - generic: Review sessions
+          - link "Dashboard Analytics, progress & certificates":
+            - /url: /dashboard
+            - generic:
+              - generic: Dashboard
+              - generic: Analytics, progress & certificates
+          - link "Knowledge Graph Visualize connections":
+            - /url: /knowledge-graph
+            - generic:
+              - generic: Knowledge Graph
+              - generic: Visualize connections
+        - generic:
+          - generic:
+            - link "Documentation":
+              - /url: /docs
+            - link "Help & Support":
+              - /url: /help
+          - generic: ONLINE
+    - generic [ref=e273]:
+      - generic [ref=e274]: AI-Powered Learning Platform
+      - heading "Master Your Learning with AI Intelligence" [level=1] [ref=e279]
+      - paragraph [ref=e280]: Upload educational content, let AI extract and match knowledge, take personalized quizzes, and visualize your growth.
+      - generic [ref=e281]:
+        - link "Start Importing" [ref=e282] [cursor=pointer]:
+          - /url: /import
+        - link "Start Learning" [ref=e288] [cursor=pointer]:
+          - /url: /learn
+    - generic [ref=e293]:
+      - generic [ref=e294]:
+        - heading "Everything You Need to Learn" [level=2] [ref=e295]
+        - paragraph [ref=e296]: A complete suite of tools powered by AI to accelerate your learning
+      - generic [ref=e297]:
+        - link [ref=e298] [cursor=pointer]:
+          - /url: /import
+          - generic [ref=e301]:
+            - heading "Import Content" [level=3] [ref=e306]
+            - paragraph [ref=e307]: Upload questions, documents, or worksheets. Support for images, PDFs, and text.
+            - generic [ref=e308]: Explore
+        - link [ref=e311] [cursor=pointer]:
+          - /url: /learn
+          - generic [ref=e314]:
+            - heading "Learn & Quiz" [level=3] [ref=e319]
+            - paragraph [ref=e320]: Take AI-generated quizzes tailored to your knowledge gaps and track mastery.
+            - generic [ref=e321]: Explore
+        - link [ref=e324] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e327]:
+            - heading "Analytics" [level=3] [ref=e331]
+            - paragraph [ref=e332]: Deep insights into your learning progress with gap analysis and recommendations.
+            - generic [ref=e333]: Explore
+        - link [ref=e336] [cursor=pointer]:
+          - /url: /knowledge-graph
+          - generic [ref=e339]:
+            - heading "Knowledge Graph" [level=3] [ref=e349]
+            - paragraph [ref=e350]: Visualize your knowledge as an interconnected graph. See relationships between topics.
+            - generic [ref=e351]: Explore
+        - link [ref=e354] [cursor=pointer]:
+          - /url: /flashcards
+          - generic [ref=e357]:
+            - heading "Flashcards" [level=3] [ref=e363]
+            - paragraph [ref=e364]: Study with auto-generated flashcards and cheat sheets for quick revision.
+            - generic [ref=e365]: Explore
+        - link [ref=e368] [cursor=pointer]:
+          - /url: /progress
+          - generic [ref=e371]:
+            - heading "Track Progress" [level=3] [ref=e376]
+            - paragraph [ref=e377]: Monitor your learning timeline, streaks, and achievements over time.
+            - generic [ref=e378]: Explore
+    - generic [ref=e383]:
+      - generic [ref=e384]:
+        - generic [ref=e385]:
+          - heading "How It Works" [level=2] [ref=e386]
+          - paragraph [ref=e387]: Get started in four simple steps
+        - generic [ref=e388]:
+          - generic [ref=e396]:
+            - generic [ref=e397]: Step 1
+            - heading "Import Your Content" [level=4] [ref=e399]
+            - paragraph [ref=e400]: Upload educational material via the Import page. Support for single questions or bulk worksheets.
+          - generic [ref=e408]:
+            - generic [ref=e409]: Step 2
+            - heading "AI Processing" [level=4] [ref=e411]
+            - paragraph [ref=e412]: Our AI extracts text, matches it to knowledge topics, and generates personalized learning materials.
+          - generic [ref=e421]:
+            - generic [ref=e422]: Step 3
+            - heading "Learn & Quiz" [level=4] [ref=e424]
+            - paragraph [ref=e425]: Take AI-generated quizzes, study flashcards, and track your mastery of each topic.
+          - generic [ref=e432]:
+            - generic [ref=e433]: Step 4
+            - heading "Track & Improve" [level=4] [ref=e435]
+            - paragraph [ref=e436]: View detailed analytics, identify knowledge gaps, and watch your progress grow over time.
+      - generic [ref=e437]:
+        - generic [ref=e438]:
+          - heading "Quick Access" [level=3] [ref=e440]
+          - generic [ref=e441]:
+            - link "Import Content" [ref=e442] [cursor=pointer]:
+              - /url: /import
+            - link "Take a Quiz" [ref=e450] [cursor=pointer]:
+              - /url: /learn
+            - link "View Analytics" [ref=e458] [cursor=pointer]:
+              - /url: /analytics
+            - link "Knowledge Graph" [ref=e465] [cursor=pointer]:
+              - /url: /knowledge-graph
+        - generic [ref=e480]:
+          - heading "Documentation" [level=3] [ref=e484]
+          - paragraph [ref=e485]: Learn how to make the most of all features with our comprehensive guides.
+          - link "View Docs" [ref=e486] [cursor=pointer]:
+            - /url: /docs
+    - generic [ref=e494]:
+      - heading "Ready to Supercharge Your Learning?" [level=2] [ref=e495]
+      - paragraph [ref=e496]: Start importing content and let AI transform how you learn.
+      - generic [ref=e497]:
+        - link "Get Started Now" [ref=e498] [cursor=pointer]:
+          - /url: /import
+        - link "View Dashboard" [ref=e502] [cursor=pointer]:
+          - /url: /dashboard
+    - generic [ref=e507]:
+      - heading "Ready to Start Learning?" [level=2] [ref=e508]
+      - paragraph [ref=e509]: Join thousands of students and educators using AI-powered tools to master any subject.
+      - generic [ref=e510]:
+        - link "Get Started Free" [ref=e511] [cursor=pointer]:
+          - /url: /auth/register
+        - link "Sign In" [ref=e514] [cursor=pointer]:
+          - /url: /auth/login
+    - contentinfo [ref=e515]:
+      - paragraph [ref=e517]: © 2026 OCR Knowledge Base Matcher. AI-Powered Learning Platform.
