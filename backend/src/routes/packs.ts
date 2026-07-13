@@ -2,9 +2,24 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { optionalAuth } from '../middleware/auth';
-import { getDb } from '../db/sqlite';
+import { getUserById } from '../services/userService';
+import { Tier } from '../../../shared/types';
 
 const router = Router();
+
+/** Resolve user tier from req.user or DB fallback */
+async function resolveTier(req: any): Promise<Tier> {
+  // 1) JWT-based (req.user.tier is NOT in JWT — see jwtService.ts — but future-proof)
+  if (req.user?.tier === 'monthly' || req.user?.tier === 'yearly') return req.user.tier;
+  // 2) DB lookup for authenticated users
+  if (req.user?.userId) {
+    try {
+      const user = await getUserById(req.user.userId);
+      if (user?.tier === 'monthly' || user?.tier === 'yearly') return user.tier;
+    } catch { /* DB error → fall through to free */ }
+  }
+  return 'free';
+}
 
 const PACKS_DIR = path.join(__dirname, '../../data/packs');
 const PACK_STATUSES = ['coming_soon', 'partial', 'complete', 'preview'] as const;
@@ -47,7 +62,7 @@ router.get('/', optionalAuth, async (req, res, next) => {
 
 /**
  * GET /api/packs/:packId
- * Returns metadata + visible nodes based on user tier.
+ * Returns metadata + node content. Node count gated by user tier.
  */
 router.get('/:packId', optionalAuth, async (req, res, next) => {
   try {
@@ -57,19 +72,58 @@ router.get('/:packId', optionalAuth, async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Pack not found' });
     }
     const meta: PackMetadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-    
-    // Tier-based node visibility (free preview vs paid full)
-    const tier = (req.user as any)?.tier ?? 'free';
+
+    const tier = await resolveTier(req);
     const isPaid = tier === 'monthly' || tier === 'yearly';
-    const visibleNodes = isPaid ? meta.loadedNodes : Math.min(meta.loadedNodes, meta.previewNodeCount);
-    
+    const nodeLimit = isPaid ? meta.loadedNodes : Math.min(meta.loadedNodes, meta.previewNodeCount);
+
+    let nodes: any[] = [];
+    if (nodeLimit > 0) {
+      const nodesPath = path.join(PACKS_DIR, packId, 'nodes.json');
+      if (fs.existsSync(nodesPath)) {
+        const allNodes = JSON.parse(fs.readFileSync(nodesPath, 'utf8'));
+        nodes = (Array.isArray(allNodes) ? allNodes : []).slice(0, nodeLimit);
+      }
+    }
+
     res.json({
       success: true,
       data: {
         ...meta,
         canAccess: isPaid || meta.status === 'coming_soon' || meta.previewNodeCount > 0,
-        visibleNodes,
-        lockedNodes: Math.max(0, meta.totalNodes - visibleNodes),
+        visibleNodes: nodes.length,
+        lockedNodes: Math.max(0, meta.totalNodes - nodes.length),
+        nodes,
+      }
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/packs/:packId/access
+ * Lightweight tier-based access info — no node loading.
+ * Used by UI to decide whether to show a lock overlay.
+ */
+router.get('/:packId/access', optionalAuth, async (req, res, next) => {
+  try {
+    const packId = req.params.packId;
+    const metaPath = path.join(PACKS_DIR, packId, 'metadata.json');
+    if (!fs.existsSync(metaPath)) {
+      return res.status(404).json({ success: false, error: 'Pack not found' });
+    }
+    const meta: PackMetadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+    const tier = await resolveTier(req);
+    const isPaid = tier === 'monthly' || tier === 'yearly';
+
+    res.json({
+      success: true,
+      data: {
+        tier,
+        canAccess: isPaid,
+        previewNodes: meta.previewNodeCount,
+        totalNodes: meta.totalNodes,
+        loadedNodes: meta.loadedNodes,
+        lockedReason: isPaid ? null : 'Upgrade to monthly or yearly to unlock all nodes',
       }
     });
   } catch (err) { next(err); }

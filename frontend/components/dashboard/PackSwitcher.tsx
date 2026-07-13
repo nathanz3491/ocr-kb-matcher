@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useToast } from '@/components/notification/Toast';
 import { api } from '@/lib/api';
@@ -88,6 +89,7 @@ function setCurrentPack(id: string, name: string) {
 export function PackSwitcher() {
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [packs, setPacks] = useState<PackWithAccess[]>([]);
   const [tier, setTier] = useState<Tier>('free');
@@ -150,7 +152,10 @@ export function PackSwitcher() {
   }, [open]);
 
   const handleSwitchPack = async (pack: PackWithAccess) => {
-    if (!isPaid && pack.status !== 'preview' && pack.status !== 'coming_soon') {
+    if (isPackLocked(pack)) {
+      addToast('该教材需要付费订阅才能使用', 'warning', 5000);
+      setOpen(false);
+      router.push('/pricing');
       return;
     }
 
@@ -305,7 +310,9 @@ export function PackSwitcher() {
                         !locked && 'cursor-pointer hover:scale-[1.01]'
                       )}
                       onClick={() => {
-                        if (!locked) handleSwitchPack(pack);
+                        if (switchingPackId !== pack.id) {
+                          handleSwitchPack(pack);
+                        }
                       }}
                     >
                       <div className="flex items-start justify-between gap-3">

@@ -11,6 +11,7 @@ import { LocalKnowledgeGraph, LocalKnowledgeGraphRef } from '@/components/result
 import { usePageLoading } from '@/components/loading/LoadingScreen';
 import { LoadingOverlay } from '@/components/loading/MinimalLoader';
 import { Notification } from '@/components/notification/Notification';
+import { PackLockOverlay } from '@/components/dashboard/PackLockOverlay';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -89,9 +90,11 @@ export default function KnowledgeGraphPage() {
         </p>
 
         {/* Graph Visualization */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <LocalKnowledgeGraph ref={graphRef} searchQuery={searchQuery} onLoadingChange={handleGraphLoading} />
-        </div>
+        <PackLockOverlay>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+            <LocalKnowledgeGraph ref={graphRef} searchQuery={searchQuery} onLoadingChange={handleGraphLoading} />
+          </div>
+        </PackLockOverlay>
       </main>
 
       {/* Loading Overlay */}
