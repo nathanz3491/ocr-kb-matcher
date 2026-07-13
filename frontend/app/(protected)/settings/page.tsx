@@ -245,6 +245,42 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Privacy & Account */}
+        <div className={clsx(
+          'rounded-2xl border p-6 mb-6 backdrop-blur-xl transition-all duration-300',
+          theme === 'dark'
+            ? 'bg-slate-800/40 border-slate-700/30'
+            : 'bg-white/60 border-white/40 shadow-xl'
+        )}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={clsx(
+              'flex h-10 w-10 items-center justify-center rounded-xl',
+              theme === 'dark' ? 'bg-red-600/20' : 'bg-red-100'
+            )}>
+              <Shield className={clsx('h-5 w-5', theme === 'dark' ? 'text-red-400' : 'text-red-600')} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Privacy & Account</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Manage your account and data</p>
+            </div>
+          </div>
+
+          <Link href="/settings/account">
+            <button className={clsx(
+              'w-full flex items-center justify-between py-3 px-4 rounded-xl',
+              'transition-all duration-300',
+              theme === 'dark'
+                ? 'hover:bg-slate-700/40 text-slate-300'
+                : 'hover:bg-slate-50 text-slate-600'
+            )}>
+              <div className="flex items-center gap-3">
+                <span className="font-medium">Account Deletion</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </Link>
+        </div>
+
         {/* Save Button */}
         <button
           onClick={handleSave}
