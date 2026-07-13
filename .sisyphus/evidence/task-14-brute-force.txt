@@ -1,0 +1,69 @@
+Task 14 — Brute-force Protection on Auth
+==========================================
+Plan: monetization-prep.md (lines 971-1014)
+Date: 2026-07-13
+
+## Changes Made
+
+### backend/src/middleware/auth.ts
+- Added Sentry and logger imports
+- Added `loginAttempts` Map<string, LoginAttemptEntry> — in-memory store
+- Added `DUMMY_PASSWORD_HASH` constant for constant-time comparison
+- Added `checkLoginLock(email)` — checks if email is locked out
+- Added `recordFailedAttempt(email)` — increments counter, applies progressive delay, locks at 10
+- Added `clearLoginAttempts(email)` — resets counter on successful login
+
+### backend/src/routes/auth.ts
+- Imported brute-force functions from middleware/auth
+- Login handler now:
+  1. Calls `checkLoginLock(email)` first — returns 429 + Retry-After if locked
+  2. Uses `DUMMY_PASSWORD_HASH` for constant-time bcrypt compare when user doesn't exist
+  3. Calls `recordFailedAttempt(email)` on failed password
+  4. Calls `clearLoginAttempts(email)` on successful login
+
+### backend/src/middleware/rateLimit.ts
+- Increased `authLimiter` max from 10 → 20 per 15min
+  (per-email lockout at 10 triggers before per-IP limit)
+
+### backend/src/middleware/auditLog.ts
+- Added `'login_locked'` to the union type accepted by `logAuthEvent()`
+
+## Progressive Delay
+- 3rd failed attempt → 1s server-side delay before 401 response
+- 5th failed attempt → 5s server-side delay
+- 10th failed attempt → account locked for 1 hour
+- Delay applied BEFORE response, making brute-forcing time-prohibitive
+
+## Lockout Behavior
+- After 10 failed attempts → account locked for 3600 seconds
+- Locked accounts return HTTP 429 with Retry-After header
+- Both wrong AND correct passwords are rejected while locked
+- Lock cleared after 1 hour (lockedUntil expires)
+
+## QA Results (2026-07-13)
+
+Test: 10 failed login attempts → 11th blocked with 429
+
+### Script: backend/qa-brute-force.mjs
+
+Register: 201
+1: 401 Invalid credentials
+2: 401 Invalid credentials
+3: 401 Invalid credentials
+4: 401 Invalid credentials
+5: 401 Invalid credentials
+6: 401 Invalid credentials
+7: 401 Invalid credentials
+8: 401 Invalid credentials
+9: 401 Invalid credentials
+10: 401 Invalid credentials
+11: 429 Account temporarily locked due to too many failed attempts (Retry-After: 3600)
+Correct password while locked: 429 Account temporarily locked (Retry-After: 3600)
+
+Result: PASS — all assertions verified.
+
+## Files Modified
+1. backend/src/middleware/auth.ts — brute-force tracker
+2. backend/src/routes/auth.ts — login handler integration
+3. backend/src/middleware/rateLimit.ts — authLimiter limit increased
+4. backend/src/middleware/auditLog.ts — login_locked audit event
