@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { Tier } from '../../../shared/types';
+import { Tier, Usage } from '../../../shared/types';
 import { requireAuth } from './auth';
-import { getUserById, saveUser } from '../services/userService';
+import { getDb } from '../db/sqlite';
+import * as Sentry from '@sentry/node';
 import {
   TIER_LIMITS,
   getCurrentMonthStart,
@@ -40,7 +41,7 @@ const RESOURCE_LABELS: Record<QuotaResource, string> = {
 };
 
 /** Factory that produces a fresh default Usage object for the current period. */
-function freshUsage() {
+function freshUsage(): Usage {
   return {
     periodStart: getCurrentMonthStart(),
     uploads: 0,
@@ -52,13 +53,14 @@ function freshUsage() {
 /**
  * Tier-based quota enforcement middleware.
  *
- * ## RACE CONDITION NOTE
+ * ## Concurrency
  *
- * This middleware reads from and writes to `users.json` via the in-memory
- * cache without any locking.  Two concurrent requests from the same user
- * may both read `used = N-1`, both increment to N, and both persist —
- * temporarily allowing 1–2 extra operations before the counter stabilises.
- * This is an accepted trade-off for the JSON-backed single-process storage.
+ * The quota counter increment uses a single atomic SQL UPDATE with a
+ * `WHERE json_extract(usage, '$.<resource>') < ?` guard, wrapped in
+ * better-sqlite3's synchronous `db.transaction()`.  Two concurrent requests
+ * CANNOT both pass the quota gate because SQLite serialises writes — the
+ * second UPDATE will see the counter already at the limit and return
+ * `changes === 0`.
  *
  * ## Period semantics
  *
@@ -77,55 +79,131 @@ export function enforceQuota(resource: QuotaResource) {
     requireAuth(req, res, async () => {
       try {
         const userId = req.user!.userId;
+        const db = getDb();
+        const now = new Date();
 
-        // Always re-read from disk — never trust an in-memory cache
-        // that may be stale across multiple requests.
-        const user = await getUserById(userId);
-        if (!user) {
+        // ── Read user from SQLite ─────────────────────────────
+        const row = db.prepare(`
+          SELECT tier, subscription_started_at, subscription_expires_at, usage
+          FROM users WHERE id = ?
+        `).get(userId) as {
+          tier: string | null;
+          subscription_started_at: string | null;
+          subscription_expires_at: string | null;
+          usage: string | null;
+        } | undefined;
+
+        if (!row) {
           res.status(500).json({ success: false, error: 'Internal error: user not found' });
           return;
         }
 
-        const now = new Date();
-        let tier: Tier = user.tier ?? 'free';
+        let tier: Tier = (row.tier as Tier) ?? 'free';
+        let usage: Usage = row.usage ? (JSON.parse(row.usage) as Usage) : freshUsage();
 
-        // ── Lazy tier downgrade ──────────────────────────────────
+        // ── Lazy tier downgrade ──────────────────────────────
         // If the user's paid subscription has expired, silently
         // downgrade to 'free' and reset usage counters.
-        if (tier !== 'free' && user.subscriptionExpiresAt) {
-          if (new Date(user.subscriptionExpiresAt) < now) {
+        if (tier !== 'free' && row.subscription_expires_at) {
+          if (new Date(row.subscription_expires_at) < now) {
             tier = 'free';
-            user.tier = 'free';
-            user.subscriptionExpiresAt = undefined;
-            user.usage = freshUsage();
-            await saveUser(user);
+            usage = freshUsage();
+            db.prepare(
+              'UPDATE users SET tier = ?, subscription_expires_at = NULL, usage = ? WHERE id = ?'
+            ).run('free', JSON.stringify(usage), userId);
           }
         }
 
-        // ── Ensure a usage object exists ─────────────────────────
-        const usage = user.usage ?? freshUsage();
-        if (!user.usage) {
-          user.usage = usage;
-        }
-
-        // ── Period rollover ──────────────────────────────────────
-        // If the current date falls outside the usage period window,
-        // reset counters and bump periodStart forward.
+        // ── Period rollover (Fix 1.2) ───────────────────────
+        // Branch on tier: free → 1st of month; paid → subscription anniversary.
         if (!isCurrentPeriod({ tier, usage }, now)) {
-          const fresh = freshUsage();
-          usage.periodStart = fresh.periodStart;
           usage.uploads = 0;
           usage.quizGenerated = 0;
           usage.chatMessages = 0;
-          user.usage = usage;
+
+          if (tier === 'free') {
+            usage.periodStart = freshUsage().periodStart;
+          } else {
+            const subscriptionStartedAt = row.subscription_started_at;
+            if (!subscriptionStartedAt) {
+              Sentry.captureMessage(
+                `Paid user ${userId} missing subscription_started_at; falling back to month-start for period rollover`,
+                'warning',
+              );
+              usage.periodStart = freshUsage().periodStart;
+            } else {
+              // Advance from the subscription anchor date in period-sized
+              // steps (1 month for monthly, 1 year for yearly) until we find
+              // the period that contains `now`.
+              const anchor = new Date(subscriptionStartedAt);
+              const periodStart = new Date(anchor);
+              while (true) {
+                const periodEnd = new Date(periodStart);
+                if (tier === 'monthly') {
+                  periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
+                } else {
+                  // yearly
+                  periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
+                }
+                if (now >= periodStart && now < periodEnd) break;
+                if (tier === 'monthly') {
+                  periodStart.setUTCMonth(periodStart.getUTCMonth() + 1);
+                } else {
+                  periodStart.setUTCFullYear(periodStart.getUTCFullYear() + 1);
+                }
+              }
+              usage.periodStart = periodStart.toISOString();
+            }
+          }
+
+          // Persist rolled-over usage to DB before the atomic increment.
+          db.prepare('UPDATE users SET usage = ? WHERE id = ?')
+            .run(JSON.stringify(usage), userId);
         }
 
-        // ── Quota check ──────────────────────────────────────────
+        // ── Atomic quota check + increment (Fix 1.1) ────────
+        // Single SQL statement wrapped in a transaction: the WHERE guard
+        // ensures the counter is strictly below the limit BEFORE incrementing.
+        // SQLite serialises writes, so two concurrent requests for the same
+        // user will never both see the counter below the limit.
         const limit = TIER_LIMITS[tier][resource];
-        const used = usage[resource];
 
-        if (used >= limit) {
-          const resetsAt = nextAnniversaryDate(usage.periodStart, tier, now);
+        const incrementResult = db.transaction(() => {
+          return db.prepare(`
+            UPDATE users
+            SET usage = json_set(
+              usage,
+              '$.${resource}',
+              COALESCE(json_extract(usage, '$.${resource}'), 0) + 1
+            )
+            WHERE id = ?
+              AND COALESCE(json_extract(usage, '$.${resource}'), 0) < ?
+          `).run(userId, limit);
+        })();
+
+        if (incrementResult.changes === 0) {
+          // Either user not found OR quota exceeded — disambiguate.
+          const checkRow = db.prepare(`
+            SELECT json_extract(usage, '$.${resource}') as used FROM users WHERE id = ?
+          `).get(userId) as { used: number | null } | undefined;
+
+          if (!checkRow) {
+            res.status(500).json({ success: false, error: 'Internal error: user not found' });
+            return;
+          }
+
+          const used = checkRow.used ?? 0;
+
+          // ── Compute resetsAt (Fix 1.4) ─────────────────
+          // Free: next 1st of month.  Paid: next subscription anniversary.
+          const subscriptionStartedAt = row.subscription_started_at;
+          const resetsAt = tier === 'free'
+            ? nextAnniversaryDate(usage.periodStart, 'free', now)
+            : nextAnniversaryDate(
+                subscriptionStartedAt ?? usage.periodStart,
+                tier,
+                now,
+              );
 
           res.status(429).json({
             success: false,
@@ -137,13 +215,12 @@ export function enforceQuota(resource: QuotaResource) {
           return;
         }
 
-        // ── Increment & persist ──────────────────────────────────
-        usage[resource]++;
-        user.usage = usage;
-        await saveUser(user);
+        // ── Success — read post-increment counter ──────────────
+        const afterRow = db.prepare(`
+          SELECT json_extract(usage, '$.${resource}') as used FROM users WHERE id = ?
+        `).get(userId) as { used: number };
 
-        // Attach quota snapshot for downstream middleware / logging.
-        req.quotaInfo = { tier, resource, used: usage[resource], limit };
+        req.quotaInfo = { tier, resource, used: afterRow.used, limit };
 
         next();
       } catch (err) {
