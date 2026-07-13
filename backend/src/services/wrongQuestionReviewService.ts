@@ -1,13 +1,13 @@
-import fs from 'fs/promises';
+import { getDb } from '../db/sqlite';
+import fs from 'fs';
 import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
-function getReviewsFile(userId?: string): string {
-  const fileName = userId
+function getLegacyFileName(userId?: string): string {
+  return userId
     ? `wrong-question-reviews-${userId}.json`
     : 'wrong-question-reviews.json';
-  return path.join(DATA_DIR, fileName);
 }
 
 export interface WrongQuestionReview {
@@ -34,28 +34,7 @@ export interface WrongQuestionResult {
   matchedNodes: Array<{ kbEntryId: string; confidence: number; reasoning: string }>;
 }
 
-async function loadReviews(userId?: string): Promise<WrongQuestionReviewData> {
-  const filePath = getReviewsFile(userId);
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content) as WrongQuestionReviewData;
-  } catch {
-    return { reviews: {} };
-  }
-}
-
-async function saveReviews(data: WrongQuestionReviewData, userId?: string): Promise<void> {
-  const filePath = getReviewsFile(userId);
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const tempPath = `${filePath}.tmp`;
-    await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-    await fs.rename(tempPath, filePath);
-  } catch (error) {
-    console.error('[WrongQuestionReviewService] Failed to save reviews:', error);
-  }
-}
+// ── SM-2 Spacing Algorithm ─────────────────────────────────────────────────
 
 function calculateNextReview(
   reviewCount: number,
@@ -81,52 +60,166 @@ function calculateNextReview(
   return { nextInterval: newInterval, nextEaseFactor: newEaseFactor };
 }
 
+// ── One-time JSON → SQLite migration ──────────────────────────────────────
+
+let migrated = false;
+
+function migrateWrongQuestionReviews(): void {
+  if (migrated) return;
+  migrated = true;
+
+  const db = getDb();
+
+  const insertStmt = db.prepare(
+    `INSERT OR IGNORE INTO wrong_question_reviews
+     (id, user_id, node_id, question, answer, explanation, reviewed_at,
+      question_index, matched_node_ids, next_review_date, review_count,
+      interval_days, ease_factor, original_job_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+
+  let files: string[];
+  try {
+    files = fs.readdirSync(DATA_DIR);
+  } catch {
+    return;
+  }
+
+  for (const file of files) {
+    if (!file.startsWith('wrong-question-reviews') || !file.endsWith('.json')) continue;
+
+    const filePath = path.join(DATA_DIR, file);
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const data: WrongQuestionReviewData = JSON.parse(content);
+      const userIdRaw = file.replace('wrong-question-reviews-', '').replace('.json', '');
+      const userId = userIdRaw === 'wrong-question-reviews' ? '' : userIdRaw;
+
+      let count = 0;
+      const run = db.transaction(() => {
+        for (const review of Object.values(data.reviews || {})) {
+          const primaryNodeId = review.matchedNodeIds?.[0] || '';
+          insertStmt.run(
+            review.reviewId,
+            userId,
+            primaryNodeId,
+            review.questionText,
+            '',
+            null,
+            review.lastReviewed,
+            review.questionIndex,
+            JSON.stringify(review.matchedNodeIds || []),
+            review.nextReviewDate,
+            review.reviewCount,
+            review.interval,
+            review.easeFactor,
+            review.originalJobId
+          );
+          count++;
+        }
+      });
+      run();
+
+      fs.renameSync(filePath, filePath + '.migrated');
+      console.log(`[wrongQuestionReview] Migrated ${file} (${count} reviews) → ${file}.migrated`);
+    } catch (err) {
+      console.warn(`[wrongQuestionReview] Skipping ${file}:`, (err as Error).message);
+    }
+  }
+}
+
+// ── Row → Review Mapping ───────────────────────────────────────────────────
+
+function rowToReview(row: any): WrongQuestionReview {
+  return {
+    reviewId: row.id,
+    questionText: row.question,
+    questionIndex: row.question_index,
+    matchedNodeIds: JSON.parse(row.matched_node_ids || '[]'),
+    lastReviewed: row.reviewed_at,
+    nextReviewDate: row.next_review_date,
+    reviewCount: row.review_count,
+    interval: row.interval_days,
+    easeFactor: row.ease_factor,
+    originalJobId: row.original_job_id || '',
+  };
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────
+
 export async function scheduleWrongQuestionReviews(
   wrongResults: WrongQuestionResult[],
   jobId: string,
   userId?: string
 ): Promise<WrongQuestionReview[]> {
-  const reviewData = await loadReviews(userId);
+  migrateWrongQuestionReviews();
+  const db = getDb();
+  const uid = userId ?? '';
   const now = new Date().toISOString();
   const scheduled: WrongQuestionReview[] = [];
 
-  for (const result of wrongResults) {
-    const reviewId = `wq_review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const matchedNodeIds = result.matchedNodes.map(m => m.kbEntryId);
+  const insertStmt = db.prepare(
+    `INSERT INTO wrong_question_reviews
+     (id, user_id, node_id, question, answer, explanation, reviewed_at,
+      question_index, matched_node_ids, next_review_date, review_count,
+      interval_days, ease_factor, original_job_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
 
-    const review: WrongQuestionReview = {
-      reviewId,
-      questionText: result.questionText,
-      questionIndex: result.questionIndex,
-      matchedNodeIds,
-      lastReviewed: now,
-      nextReviewDate: now,
-      reviewCount: 0,
-      interval: 0,
-      easeFactor: 2.5,
-      originalJobId: jobId,
-    };
+  const run = db.transaction(() => {
+    for (const result of wrongResults) {
+      const reviewId = `wq_review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const matchedNodeIds = result.matchedNodes.map(m => m.kbEntryId);
+      const primaryNodeId = matchedNodeIds[0] || '';
 
-    reviewData.reviews[reviewId] = review;
-    scheduled.push(review);
-  }
+      const review: WrongQuestionReview = {
+        reviewId,
+        questionText: result.questionText,
+        questionIndex: result.questionIndex,
+        matchedNodeIds,
+        lastReviewed: now,
+        nextReviewDate: now,
+        reviewCount: 0,
+        interval: 0,
+        easeFactor: 2.5,
+        originalJobId: jobId,
+      };
 
-  await saveReviews(reviewData, userId);
+      insertStmt.run(
+        reviewId, uid, primaryNodeId, result.questionText, '', null, now,
+        result.questionIndex, JSON.stringify(matchedNodeIds), now,
+        0, 0, 2.5, jobId
+      );
+      scheduled.push(review);
+    }
+  });
+  run();
+
   return scheduled;
 }
 
 export async function getDueReviews(userId?: string): Promise<WrongQuestionReview[]> {
-  const reviewData = await loadReviews(userId);
+  migrateWrongQuestionReviews();
+  const db = getDb();
+  const uid = userId ?? '';
+
+  const rows = db.prepare(
+    'SELECT * FROM wrong_question_reviews WHERE user_id = ? ORDER BY next_review_date ASC'
+  ).all(uid) as any[];
+
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const dueReviews = Object.values(reviewData.reviews).filter(review => {
-    const nextReview = new Date(review.nextReviewDate);
-    nextReview.setHours(0, 0, 0, 0);
-    return nextReview <= now;
-  });
+  const dueReviews = rows
+    .map(rowToReview)
+    .filter(review => {
+      const nextReview = new Date(review.nextReviewDate);
+      nextReview.setHours(0, 0, 0, 0);
+      return nextReview <= now;
+    })
+    .sort((a, b) => a.reviewCount - b.reviewCount);
 
-  return dueReviews.sort((a, b) => a.reviewCount - b.reviewCount);
+  return dueReviews;
 }
 
 export async function submitReview(
@@ -134,10 +227,17 @@ export async function submitReview(
   quality: number,
   userId?: string
 ): Promise<WrongQuestionReview | null> {
-  const reviewData = await loadReviews(userId);
-  const review = reviewData.reviews[reviewId];
-  if (!review) return null;
+  migrateWrongQuestionReviews();
+  const db = getDb();
+  const uid = userId ?? '';
 
+  const row = db.prepare(
+    'SELECT * FROM wrong_question_reviews WHERE id = ? AND user_id = ?'
+  ).get(reviewId, uid) as any;
+
+  if (!row) return null;
+
+  const review = rowToReview(row);
   const now = new Date();
   const { nextInterval, nextEaseFactor } = calculateNextReview(
     review.reviewCount,
@@ -149,20 +249,33 @@ export async function submitReview(
   const nextReviewDate = new Date(now);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
 
-  review.lastReviewed = now.toISOString();
-  review.nextReviewDate = nextReviewDate.toISOString();
-  review.reviewCount += 1;
-  review.interval = nextInterval;
-  review.easeFactor = nextEaseFactor;
+  db.prepare(
+    `UPDATE wrong_question_reviews SET
+       reviewed_at = ?, next_review_date = ?, review_count = review_count + 1,
+       interval_days = ?, ease_factor = ?
+     WHERE id = ? AND user_id = ?`
+  ).run(now.toISOString(), nextReviewDate.toISOString(), nextInterval, nextEaseFactor, reviewId, uid);
 
-  reviewData.reviews[reviewId] = review;
-  await saveReviews(reviewData, userId);
-  return review;
+  return {
+    ...review,
+    lastReviewed: now.toISOString(),
+    nextReviewDate: nextReviewDate.toISOString(),
+    reviewCount: review.reviewCount + 1,
+    interval: nextInterval,
+    easeFactor: nextEaseFactor,
+  };
 }
 
 export async function getReviewById(reviewId: string, userId?: string): Promise<WrongQuestionReview | null> {
-  const reviewData = await loadReviews(userId);
-  return reviewData.reviews[reviewId] || null;
+  migrateWrongQuestionReviews();
+  const db = getDb();
+  const uid = userId ?? '';
+
+  const row = db.prepare(
+    'SELECT * FROM wrong_question_reviews WHERE id = ? AND user_id = ?'
+  ).get(reviewId, uid) as any;
+
+  return row ? rowToReview(row) : null;
 }
 
 export async function getReviewStats(userId?: string): Promise<{
@@ -170,13 +283,23 @@ export async function getReviewStats(userId?: string): Promise<{
   due: number;
   completed: number;
 }> {
-  const reviewData = await loadReviews(userId);
-  const allReviews = Object.values(reviewData.reviews);
+  migrateWrongQuestionReviews();
+  const db = getDb();
+  const uid = userId ?? '';
+
+  const totalRow = db.prepare(
+    'SELECT COUNT(*) as cnt FROM wrong_question_reviews WHERE user_id = ?'
+  ).get(uid) as { cnt: number };
+
+  const completedRow = db.prepare(
+    'SELECT COUNT(*) as cnt FROM wrong_question_reviews WHERE user_id = ? AND review_count > 0'
+  ).get(uid) as { cnt: number };
+
   const dueReviews = await getDueReviews(userId);
 
   return {
-    total: allReviews.length,
+    total: totalRow.cnt,
     due: dueReviews.length,
-    completed: allReviews.filter(r => r.reviewCount > 0).length,
+    completed: completedRow.cnt,
   };
 }

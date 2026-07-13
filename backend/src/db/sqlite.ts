@@ -260,6 +260,49 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_trial_email ON trial_attempts(email);
     CREATE INDEX IF NOT EXISTS idx_trial_fingerprint ON trial_attempts(device_fingerprint);
+
+    CREATE TABLE IF NOT EXISTS study_materials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      job_id TEXT,
+      type TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_study_materials_user ON study_materials(user_id);
+    CREATE INDEX IF NOT EXISTS idx_study_materials_lookup ON study_materials(user_id, node_id, type);
+
+    CREATE TABLE IF NOT EXISTS user_progress (
+      user_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      mastery_level REAL NOT NULL DEFAULT 0,
+      last_reviewed TEXT,
+      total_reviews INTEGER NOT NULL DEFAULT 0,
+      known INTEGER NOT NULL DEFAULT 0,
+      learned_at TEXT,
+      PRIMARY KEY (user_id, node_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_progress_known ON user_progress(user_id, known);
+
+    CREATE TABLE IF NOT EXISTS wrong_question_reviews (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL DEFAULT '',
+      explanation TEXT,
+      reviewed_at TEXT NOT NULL,
+      question_index INTEGER NOT NULL DEFAULT 0,
+      matched_node_ids TEXT NOT NULL DEFAULT '[]',
+      next_review_date TEXT,
+      review_count INTEGER NOT NULL DEFAULT 0,
+      interval_days INTEGER NOT NULL DEFAULT 0,
+      ease_factor REAL NOT NULL DEFAULT 2.5,
+      original_job_id TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_wrong_q_reviews_user ON wrong_question_reviews(user_id);
+    CREATE INDEX IF NOT EXISTS idx_wrong_q_reviews_due ON wrong_question_reviews(user_id, next_review_date);
   `);
 }
 

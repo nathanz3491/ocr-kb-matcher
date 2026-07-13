@@ -3,23 +3,15 @@
  * Generates AI-powered study materials for knowledge nodes
  */
 
-import fs from 'fs/promises';
+import { getDb } from '../db/sqlite';
+import fs from 'fs';
 import path from 'path';
 import { CheatSheet, StudyNotes } from '../../../shared/types';
 import { getKnowledgeGraph } from './knowledgeGraphStorage';
 import OpenAI from 'openai';
 
-async function ensureDir(dir: string): Promise<void> {
-  try {
-    await fs.mkdir(dir, { recursive: true });
-  } catch (error) {
-    console.error(`[Study] Error creating directory ${dir}:`, error);
-  }
-}
+// ── AI Generation ─────────────────────────────────────────────────────────
 
-/**
- * Simple AI call function
- */
 async function generateWithAI(prompt: string): Promise<string> {
   const apiKey = process.env.MINIMAX_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -46,6 +38,143 @@ async function generateWithAI(prompt: string): Promise<string> {
   return responseText;
 }
 
+// ── One-time JSON → SQLite migration ──────────────────────────────────────
+
+const DATA_DIR = path.join(process.cwd(), 'data');
+
+let migrated = false;
+
+function migrateStudyMaterials(): void {
+  if (migrated) return;
+  migrated = true;
+
+  const db = getDb();
+
+  const insertStmt = db.prepare(
+    'INSERT OR IGNORE INTO study_materials (id, user_id, node_id, job_id, type, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  );
+
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(DATA_DIR, { withFileTypes: true });
+  } catch {
+    return; // data dir doesn't exist yet — nothing to migrate
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const dirName = entry.name;
+
+    let type: string;
+    let userId: string;
+
+    if (dirName.startsWith('cheat-sheets-')) {
+      type = 'cheat_sheet';
+      userId = dirName.replace('cheat-sheets-', '');
+    } else if (dirName.startsWith('study-notes-')) {
+      type = 'study_notes';
+      userId = dirName.replace('study-notes-', '');
+    } else {
+      continue;
+    }
+
+    if (dirName.endsWith('.migrated')) continue;
+
+    const dirPath = path.join(DATA_DIR, dirName);
+    let files: string[];
+    try {
+      files = fs.readdirSync(dirPath);
+    } catch {
+      continue;
+    }
+
+    let migratedCount = 0;
+    const run = db.transaction(() => {
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+        const nodeId = file.replace('.json', '');
+        try {
+          const content = fs.readFileSync(path.join(dirPath, file), 'utf-8');
+          const obj = JSON.parse(content);
+          const id = `${type}_${userId}_${nodeId}`;
+          insertStmt.run(
+            id,
+            userId,
+            nodeId,
+            null,
+            type,
+            JSON.stringify(obj),
+            obj.createdAt || new Date().toISOString()
+          );
+          migratedCount++;
+        } catch (err) {
+          console.warn(`[studyMaterial] Skipping ${file} in ${dirName}:`, (err as Error).message);
+        }
+      }
+    });
+    run();
+
+    // Rename directory to .migrated
+    const newPath = dirPath + '.migrated';
+    try {
+      fs.renameSync(dirPath, newPath);
+      console.log(`[studyMaterial] Migrated ${dirName} (${migratedCount} items) → ${dirName}.migrated`);
+    } catch (renameErr) {
+      console.warn(`[studyMaterial] Could not rename ${dirName}:`, (renameErr as Error).message);
+    }
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function dbAllCheatSheets(userId: string): CheatSheet[] {
+  const db = getDb();
+  const rows = db.prepare(
+    'SELECT content FROM study_materials WHERE user_id = ? AND type = ?'
+  ).all(userId, 'cheat_sheet') as { content: string }[];
+  return rows.map(r => JSON.parse(r.content) as CheatSheet);
+}
+
+function dbGetCheatSheet(nodeId: string, userId: string): CheatSheet | null {
+  const db = getDb();
+  const row = db.prepare(
+    'SELECT content FROM study_materials WHERE user_id = ? AND node_id = ? AND type = ?'
+  ).get(userId, nodeId, 'cheat_sheet') as { content: string } | undefined;
+  return row ? (JSON.parse(row.content) as CheatSheet) : null;
+}
+
+function dbSaveCheatSheet(nodeId: string, userId: string, sheet: CheatSheet): void {
+  const db = getDb();
+  const id = `cheat_sheet_${userId}_${nodeId}`;
+  db.prepare(
+    'INSERT OR REPLACE INTO study_materials (id, user_id, node_id, job_id, type, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, userId, nodeId, null, 'cheat_sheet', JSON.stringify(sheet), sheet.createdAt || new Date().toISOString());
+}
+
+function dbAllStudyNotes(userId: string): StudyNotes[] {
+  const db = getDb();
+  const rows = db.prepare(
+    'SELECT content FROM study_materials WHERE user_id = ? AND type = ?'
+  ).all(userId, 'study_notes') as { content: string }[];
+  return rows.map(r => JSON.parse(r.content) as StudyNotes);
+}
+
+function dbGetStudyNotes(nodeId: string, userId: string): StudyNotes | null {
+  const db = getDb();
+  const row = db.prepare(
+    'SELECT content FROM study_materials WHERE user_id = ? AND node_id = ? AND type = ?'
+  ).get(userId, nodeId, 'study_notes') as { content: string } | undefined;
+  return row ? (JSON.parse(row.content) as StudyNotes) : null;
+}
+
+function dbSaveStudyNotes(nodeId: string, userId: string, notes: StudyNotes): void {
+  const db = getDb();
+  const id = `study_notes_${userId}_${nodeId}`;
+  db.prepare(
+    'INSERT OR REPLACE INTO study_materials (id, user_id, node_id, job_id, type, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, userId, nodeId, null, 'study_notes', JSON.stringify(notes), notes.createdAt || new Date().toISOString());
+}
+
 // ===========================================
 // CHEAT SHEETS
 // ===========================================
@@ -54,50 +183,25 @@ async function generateWithAI(prompt: string): Promise<string> {
  * Get all cheat sheets
  */
 export async function getAllCheatSheets(userId?: string): Promise<CheatSheet[]> {
-  const CHEAT_SHEETS_DIR = path.join(process.cwd(), 'data', `cheat-sheets-${userId ?? ''}`);
-  await ensureDir(CHEAT_SHEETS_DIR);
-
-  try {
-    const files = await fs.readdir(CHEAT_SHEETS_DIR);
-    const sheets: CheatSheet[] = [];
-
-    for (const file of files) {
-      if (file.endsWith('.json')) {
-        try {
-          const content = await fs.readFile(path.join(CHEAT_SHEETS_DIR, file), 'utf-8');
-          sheets.push(JSON.parse(content));
-        } catch (err) {
-          console.error(`[CheatSheet] Error reading ${file}:`, err);
-        }
-      }
-    }
-    return sheets;
-  } catch (error) {
-    console.error('[CheatSheet] Error getting all sheets:', error);
-    return [];
-  }
+  migrateStudyMaterials();
+  return dbAllCheatSheets(userId ?? '');
 }
 
 /**
  * Get cheat sheet for a node
  */
 export async function getCheatSheetByNode(nodeId: string, userId?: string): Promise<CheatSheet | null> {
-  const CHEAT_SHEETS_DIR = path.join(process.cwd(), 'data', `cheat-sheets-${userId ?? ''}`);
-  await ensureDir(CHEAT_SHEETS_DIR);
-  const filePath = path.join(CHEAT_SHEETS_DIR, `${nodeId}.json`);
-
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+  migrateStudyMaterials();
+  return dbGetCheatSheet(nodeId, userId ?? '');
 }
 
 /**
  * Generate cheat sheet for a node using AI
  */
 export async function generateCheatSheet(nodeId: string, userId?: string): Promise<CheatSheet> {
+  migrateStudyMaterials();
+  const uid = userId ?? '';
+
   const graph = await getKnowledgeGraph(userId);
   const node = graph.nodes.find(n => n.id === nodeId);
 
@@ -156,13 +260,7 @@ Keep content concise and educational. Focus on what students need to remember.`;
     updatedAt: now,
   };
 
-  const CHEAT_SHEETS_DIR = path.join(process.cwd(), 'data', `cheat-sheets-${userId ?? ''}`);
-  await ensureDir(CHEAT_SHEETS_DIR);
-  await fs.writeFile(
-    path.join(CHEAT_SHEETS_DIR, `${nodeId}.json`),
-    JSON.stringify(cheatSheet, null, 2),
-    'utf-8'
-  );
+  dbSaveCheatSheet(nodeId, uid, cheatSheet);
 
   return cheatSheet;
 }
@@ -171,6 +269,7 @@ Keep content concise and educational. Focus on what students need to remember.`;
  * Get or generate cheat sheet
  */
 export async function getOrGenerateCheatSheet(nodeId: string, userId?: string): Promise<CheatSheet> {
+  migrateStudyMaterials();
   const existing = await getCheatSheetByNode(nodeId, userId);
   if (existing) {
     return existing;
@@ -186,50 +285,25 @@ export async function getOrGenerateCheatSheet(nodeId: string, userId?: string): 
  * Get all study notes
  */
 export async function getAllStudyNotes(userId?: string): Promise<StudyNotes[]> {
-  const STUDY_NOTES_DIR = path.join(process.cwd(), 'data', `study-notes-${userId ?? ''}`);
-  await ensureDir(STUDY_NOTES_DIR);
-
-  try {
-    const files = await fs.readdir(STUDY_NOTES_DIR);
-    const notes: StudyNotes[] = [];
-
-    for (const file of files) {
-      if (file.endsWith('.json')) {
-        try {
-          const content = await fs.readFile(path.join(STUDY_NOTES_DIR, file), 'utf-8');
-          notes.push(JSON.parse(content));
-        } catch (err) {
-          console.error(`[StudyNotes] Error reading ${file}:`, err);
-        }
-      }
-    }
-    return notes;
-  } catch (error) {
-    console.error('[StudyNotes] Error getting all notes:', error);
-    return [];
-  }
+  migrateStudyMaterials();
+  return dbAllStudyNotes(userId ?? '');
 }
 
 /**
  * Get study notes for a node
  */
 export async function getStudyNotesByNode(nodeId: string, userId?: string): Promise<StudyNotes | null> {
-  const STUDY_NOTES_DIR = path.join(process.cwd(), 'data', `study-notes-${userId ?? ''}`);
-  await ensureDir(STUDY_NOTES_DIR);
-  const filePath = path.join(STUDY_NOTES_DIR, `${nodeId}.json`);
-
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+  migrateStudyMaterials();
+  return dbGetStudyNotes(nodeId, userId ?? '');
 }
 
 /**
  * Generate study notes for a node using AI
  */
 export async function generateStudyNotes(nodeId: string, userId?: string): Promise<StudyNotes> {
+  migrateStudyMaterials();
+  const uid = userId ?? '';
+
   const graph = await getKnowledgeGraph(userId);
   const node = graph.nodes.find(n => n.id === nodeId);
 
@@ -287,13 +361,7 @@ Write in clear, educational language suitable for students.`;
     updatedAt: now,
   };
 
-  const STUDY_NOTES_DIR = path.join(process.cwd(), 'data', `study-notes-${userId ?? ''}`);
-  await ensureDir(STUDY_NOTES_DIR);
-  await fs.writeFile(
-    path.join(STUDY_NOTES_DIR, `${nodeId}.json`),
-    JSON.stringify(studyNotes, null, 2),
-    'utf-8'
-  );
+  dbSaveStudyNotes(nodeId, uid, studyNotes);
 
   return studyNotes;
 }
@@ -302,6 +370,7 @@ Write in clear, educational language suitable for students.`;
  * Get or generate study notes
  */
 export async function getOrGenerateStudyNotes(nodeId: string, userId?: string): Promise<StudyNotes> {
+  migrateStudyMaterials();
   const existing = await getStudyNotesByNode(nodeId, userId);
   if (existing) {
     return existing;
