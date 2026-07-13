@@ -31,6 +31,7 @@ import accountRoutes from './account';
 import packsRoutes from './packs';
 import subscriptionRoutes from './subscriptions';
 import webhookRoutes from './webhooks';
+import userRoutes from './users';
 
 const router = Router();
 
@@ -69,6 +70,7 @@ router.use('/api/account', accountRoutes);
 router.use('/api/packs', packsRoutes);
 router.use('/api/subscriptions', subscriptionRoutes);
 router.use('/api/webhooks', webhookRoutes);
+router.use('/api/users', userRoutes);
 
 /**
  * @route   GET /health
@@ -129,6 +131,7 @@ router.get(
         account: '/api/account',
         subscriptions: '/api/subscriptions',
         webhooks: '/api/webhooks',
+        users: '/api/users',
         test: process.env.NODE_ENV === 'production' ? undefined : '/api/test',
       },
     });
