@@ -1,0 +1,12 @@
+{
+  "id": "default",
+  "name": "East Asia History",
+  "subject": "history",
+  "grade": "general",
+  "status": "complete",
+  "totalNodes": 168,
+  "loadedNodes": 168,
+  "previewNodeCount": 0,
+  "price": "free",
+  "description": "Default historical knowledge graph covering East Asian civilizations"
+}

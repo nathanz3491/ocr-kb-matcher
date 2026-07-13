@@ -1,0 +1,12 @@
+{
+  "id": "shuxue-bixiu-1",
+  "name": "数学必修一",
+  "subject": "数学",
+  "grade": "高中",
+  "status": "coming_soon",
+  "totalNodes": 80,
+  "loadedNodes": 0,
+  "previewNodeCount": 10,
+  "price": "月卡/年卡专属",
+  "description": "高中数学必修一"
+}
