@@ -479,6 +479,24 @@ export class KnowledgeGraphStorage {
       }
     };
   }
+
+  /**
+   * Load a content pack into a user's graph.
+   * @param packId  Pack identifier ('default' for the built-in pack, otherwise loads from backend/data/packs/{packId}/)
+   */
+  async loadPackForUser(packId: string): Promise<void> {
+    const graph = packId === 'default'
+      ? this.createDefaultGraph()
+      : this.loadGraphFromPack(packId);
+    await this.saveGraph(graph);
+  }
+
+  /**
+   * Stub for future pack loader (Task 2.2 will implement pack directory structure).
+   */
+  private loadGraphFromPack(packId: string): StoredKnowledgeGraph {
+    throw new Error(`Pack '${packId}' not yet implemented — Task 2.2 will add backend/data/packs/${packId}/`);
+  }
 }
 
 const storageCache: Map<string, KnowledgeGraphStorage> = new Map();
@@ -569,76 +587,20 @@ export function resetStorageInstance(): void {
   storageCache.clear();
 }
 
+/**
+ * Load the default content pack for a user. Backward-compat wrapper for existing callers.
+ */
 export async function copyDefaultGraphToUser(userId: string): Promise<void> {
-  const db = getDb();
-  const defaultUserId = '__global__';
-  const defaultMeta = db.prepare('SELECT * FROM graph_metadata WHERE user_id = ?').get(defaultUserId) as Record<string, unknown> | undefined;
-  const defaultNodes = db.prepare('SELECT * FROM graph_nodes WHERE user_id = ?').all(defaultUserId) as Record<string, unknown>[];
-  const defaultEdges = db.prepare('SELECT * FROM graph_edges WHERE user_id = ?').all(defaultUserId) as Record<string, unknown>[];
+  return loadPackForUser(userId, 'default');
+}
 
-  const insertNode = db.prepare(`
-    INSERT OR IGNORE INTO graph_nodes
-      (id, user_id, name, domain, description, prerequisites, next_steps, x, y, sources, unit, time_period)
-    VALUES
-      (@id, @user_id, @name, @domain, @description, @prerequisites, @next_steps, @x, @y, @sources, @unit, @time_period)
-  `);
-
-  const insertEdge = db.prepare(`
-    INSERT OR IGNORE INTO graph_edges
-      (id, user_id, source, target, label, sources)
-    VALUES
-      (@id, @user_id, @source, @target, @label, @sources)
-  `);
-
-  const tx = db.transaction(() => {
-    for (const node of defaultNodes) {
-      insertNode.run({
-        id: node.id,
-        user_id: userId,
-        name: node.name,
-        domain: node.domain,
-        description: node.description ?? null,
-        prerequisites: node.prerequisites,
-        next_steps: node.next_steps,
-        x: node.x ?? null,
-        y: node.y ?? null,
-        sources: node.sources,
-        unit: node.unit ?? null,
-        time_period: node.time_period ?? null,
-      });
-    }
-
-    for (const edge of defaultEdges) {
-      insertEdge.run({
-        id: edge.id,
-        user_id: userId,
-        source: edge.source,
-        target: edge.target,
-        label: edge.label ?? null,
-        sources: edge.sources,
-      });
-    }
-
-    if (defaultMeta) {
-      const stats = typeof defaultMeta.statistics === 'string'
-        ? JSON.parse(defaultMeta.statistics as string)
-        : { totalJobs: 0, totalNodes: 0, totalEdges: 0, nodeTypeDistribution: { concept: 0, entity: 0, process: 0 } };
-      stats.totalJobs = 0;
-
-      db.prepare(`
-        INSERT OR REPLACE INTO graph_metadata
-          (user_id, version, last_updated, statistics, job_contributions)
-        VALUES
-          (@user_id, @version, @last_updated, @statistics, @job_contributions)
-      `).run({
-        user_id: userId,
-        version: defaultMeta.version ?? 1,
-        last_updated: new Date().toISOString(),
-        statistics: JSON.stringify(stats),
-        job_contributions: '{}',
-      });
-    }
-  });
-
-  tx();
+/**
+ * Load a content pack into a user's graph.
+ * @param userId  User to load the pack for
+ * @param packId  Pack identifier ('default' for the built-in pack)
+ */
+export async function loadPackForUser(userId: string, packId: string): Promise<void> {
+  const storage = getKnowledgeGraphStorage(userId);
+  await storage.initialize();
+  await storage.loadPackForUser(packId);
 }
