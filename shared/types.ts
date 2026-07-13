@@ -374,3 +374,23 @@ export interface StudyNotes {
   createdAt: string;
   updatedAt: string;
 }
+
+// ===========================================
+// CONTENT PACK TYPES
+// ===========================================
+
+/**
+ * Pack metadata - describes a content pack (subject-based knowledge collection)
+ */
+export interface PackMetadata {
+  id: string;
+  name: string;
+  subject: string;
+  grade: string;
+  status: 'coming_soon' | 'partial' | 'complete' | 'preview';
+  totalNodes: number;
+  loadedNodes: number;
+  previewNodeCount: number;
+  price: string;
+  description: string;
+}

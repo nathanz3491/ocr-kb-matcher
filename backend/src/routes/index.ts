@@ -28,6 +28,9 @@ import adminRoutes from './admin';
 import userSettingsRoutes from './userSettings';
 import parentMonitorRoutes from './parentMonitor';
 import accountRoutes from './account';
+import packsRoutes from './packs';
+import subscriptionRoutes from './subscriptions';
+import webhookRoutes from './webhooks';
 
 const router = Router();
 
@@ -63,6 +66,9 @@ router.use('/api/admin', adminRoutes);
 router.use('/api/user', userSettingsRoutes);
 router.use('/api/parent-monitor', parentMonitorRoutes);
 router.use('/api/account', accountRoutes);
+router.use('/api/packs', packsRoutes);
+router.use('/api/subscriptions', subscriptionRoutes);
+router.use('/api/webhooks', webhookRoutes);
 
 /**
  * @route   GET /health
@@ -121,6 +127,8 @@ router.get(
         graphEditor: '/api/graph-editor',
         studyPlan: '/api/study-plan',
         account: '/api/account',
+        subscriptions: '/api/subscriptions',
+        webhooks: '/api/webhooks',
         test: process.env.NODE_ENV === 'production' ? undefined : '/api/test',
       },
     });
