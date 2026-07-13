@@ -27,7 +27,8 @@ import {
   isRefreshTokenRevoked,
   revokeAccessToken,
 } from '../services/tokenRevocation';
-import { sendVerificationEmail } from '../services/emailService';
+import { sendVerificationEmail, sendExpiryReminder } from '../services/emailService';
+import { getDb } from '../db/sqlite';
 import { validateEmail } from '../services/emailValidation';
 import {
   generateStudentCode,
@@ -86,6 +87,48 @@ const refreshSchema = z.object({
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function checkReminderAlreadySent(
+  userId: string,
+  subscriptionExpiresAt: string,
+  daysRemaining: number
+): boolean {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) as cnt FROM audit_log
+       WHERE user_id = ? AND action = 'expiry_reminder'
+         AND json_extract(details, '$.daysRemaining') = ?
+         AND json_extract(details, '$.subscriptionExpiresAt') = ?`
+    )
+    .get(userId, daysRemaining, subscriptionExpiresAt) as { cnt: number };
+  return row.cnt > 0;
+}
+
+function recordExpiryReminder(
+  userId: string,
+  subscriptionExpiresAt: string,
+  daysRemaining: number,
+  ip: string | undefined,
+  userAgent: string | undefined
+): void {
+  const db = getDb();
+  const { v4: uuidv4 } = require('uuid');
+  db.prepare(
+    `INSERT INTO audit_log (id, user_id, action, resource, resource_id, details, ip, user_agent, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    uuidv4(),
+    userId,
+    'expiry_reminder',
+    'subscription',
+    userId,
+    JSON.stringify({ daysRemaining, subscriptionExpiresAt }),
+    ip ?? null,
+    userAgent ?? null,
+    new Date().toISOString()
+  );
 }
 
 router.post(
@@ -312,6 +355,48 @@ router.post(
     const refreshToken = generateRefreshToken(user);
 
     const userWithoutPassword = toUserWithoutPassword(user);
+
+    // ── Lazy expiry reminder ──────────────────────────────
+    if (
+      user.tier &&
+      user.tier !== 'free' &&
+      user.subscriptionExpiresAt &&
+      !user.email.startsWith('deleted-')
+    ) {
+      const expiryMs = new Date(user.subscriptionExpiresAt).getTime();
+      const nowMs = Date.now();
+      const daysRemaining = Math.ceil(
+        (expiryMs - nowMs) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysRemaining === 7 || daysRemaining === 1) {
+        const alreadySent = checkReminderAlreadySent(
+          user.id,
+          user.subscriptionExpiresAt,
+          daysRemaining
+        );
+        if (!alreadySent) {
+          sendExpiryReminder(user, daysRemaining)
+            .then((result) => {
+              if (result.sent) {
+                recordExpiryReminder(
+                  user.id,
+                  user.subscriptionExpiresAt!,
+                  daysRemaining,
+                  req.ip || req.socket.remoteAddress,
+                  req.headers['user-agent'] as string | undefined
+                );
+              }
+            })
+            .catch((err) => {
+              console.error(
+                '[ExpiryReminder] Failed to send reminder:',
+                err
+              );
+            });
+        }
+      }
+    }
 
     logAuthEvent('login_success', {
       userId: user.id,

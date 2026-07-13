@@ -223,8 +223,102 @@ export async function sendVerificationEmail(
   await sendVerificationEmailViaBrevo(email, code, name);
 }
 
+// ── Expiry Reminder ──────────────────────────────────────────
+
+const EXPIRY_REMINDER_TEMPLATE = (
+  name: string,
+  tier: string,
+  expiryDate: string,
+  daysRemaining: number
+): { subject: string; html: string } => {
+  const tierLabel = tier === 'monthly' ? '月度会员' : '年度会员';
+  return {
+    subject: `您的${tierLabel}将在${daysRemaining}天后到期`,
+    html: `
+      <h2>您好${name}，您的订阅即将到期</h2>
+      <p>您的<b>${tierLabel}</b>将在 <b>${daysRemaining}天后</b>（${expiryDate}）到期。</p>
+      <p>为避免影响您的学习，请及时续费或购买兑换码兑换。</p>
+      <p><a href="${process.env.NEXT_PUBLIC_PURCHASE_URL || '#'}">立即购买</a></p>
+      <p>感谢您选择 KIP 智能学习平台！</p>
+    `,
+  };
+};
+
+interface ExpiryReminderUser {
+  email: string;
+  name: string;
+  tier?: string;
+  subscriptionExpiresAt?: string;
+}
+
+export async function sendExpiryReminder(
+  user: ExpiryReminderUser,
+  daysRemaining: number
+): Promise<{ sent: boolean; reason?: string }> {
+  // Skip deleted/anonymized users
+  if (!user.email || user.email.startsWith('deleted-')) {
+    return { sent: false, reason: 'deleted_or_anonymized_user' };
+  }
+
+  const tier = user.tier || 'free';
+  if (tier === 'free') {
+    return { sent: false, reason: 'free_tier' };
+  }
+
+  const expiryDate = user.subscriptionExpiresAt
+    ? new Date(user.subscriptionExpiresAt).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+    : '未知';
+  const displayName = user.name || '用户';
+
+  const { subject, html } = EXPIRY_REMINDER_TEMPLATE(
+    displayName,
+    tier,
+    expiryDate,
+    daysRemaining
+  );
+
+  if (!SMTP_USER || !SMTP_PASS) {
+    console.log(
+      `[EmailService] SMTP not configured — DEV MODE. Expiry reminder for ${user.email}: ${daysRemaining} days, tier=${tier}`
+    );
+    return { sent: false, reason: 'no_smtp_config' };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      to: user.email,
+      subject,
+      html,
+    });
+
+    console.log(
+      `[EmailService] Expiry reminder sent to ${user.email} (${daysRemaining} days remaining)`
+    );
+    return { sent: true };
+  } catch (err) {
+    console.error('[EmailService] Expiry reminder send failed:', err);
+    return { sent: false, reason: 'smtp_error' };
+  }
+}
+
 export const emailService = {
   sendVerificationEmail,
+  sendExpiryReminder,
 };
 
 export default emailService;
