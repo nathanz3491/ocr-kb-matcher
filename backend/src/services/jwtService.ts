@@ -39,6 +39,7 @@ export function generateAccessToken(user: User): string {
     userId: user.id,
     email: user.email,
     accountType: user.accountType || 'student',
+    role: user.role ?? 'user',
     jti: crypto.randomUUID(),
   };
 

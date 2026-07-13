@@ -65,7 +65,7 @@ export function authenticate(
       return;
     }
 
-    req.user = { userId: payload.userId, email: payload.email, accountType: payload.accountType || 'student' };
+    req.user = { userId: payload.userId, email: payload.email, accountType: payload.accountType || 'student', role: payload.role || 'user' };
     next();
   } catch (error) {
     // Dev fallback: treat invalid/expired tokens as guest
@@ -106,7 +106,7 @@ export function optionalAuth(
       return;
     }
 
-    req.user = { userId: payload.userId, email: payload.email, accountType: payload.accountType || 'student' };
+    req.user = { userId: payload.userId, email: payload.email, accountType: payload.accountType || 'student', role: payload.role || 'user' };
   } catch {
     // Token invalid but optional - continue without user
   }

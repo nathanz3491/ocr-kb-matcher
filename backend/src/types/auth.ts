@@ -41,6 +41,7 @@ export interface JWTPayload {
   email: string;
   accountType: AccountType;
   jti?: string;
+  role?: UserRole;
   iat: number;
   exp: number;
 }
