@@ -96,3 +96,42 @@ export function nextAnniversaryDate(
 
   return result.toISOString();
 }
+
+/**
+ * Returns the ISO date string for the START of the usage period that contains
+ * `now`, given the user's tier and subscription anchor.
+ *
+ * - free:    1st of the current UTC month.
+ * - monthly: the most recent subscription-anniversary day on/before `now`.
+ * - yearly:  the most recent yearly anniversary on/before `now`.
+ *
+ * This is the single source of truth for period rollover; both the quota
+ * enforcement middleware and the /api/user/quota endpoint must use it so the
+ * displayed and enforced periods can never drift apart.
+ */
+export function currentPeriodStart(
+  subscriptionStartedAt: string | null | undefined,
+  tier: Tier,
+  now: Date,
+): string {
+  if (tier === 'free' || !subscriptionStartedAt) {
+    return getCurrentMonthStart();
+  }
+
+  const periodStart = new Date(subscriptionStartedAt);
+  while (true) {
+    const periodEnd = new Date(periodStart);
+    if (tier === 'monthly') {
+      periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
+    } else {
+      periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
+    }
+    if (now >= periodStart && now < periodEnd) break;
+    if (tier === 'monthly') {
+      periodStart.setUTCMonth(periodStart.getUTCMonth() + 1);
+    } else {
+      periodStart.setUTCFullYear(periodStart.getUTCFullYear() + 1);
+    }
+  }
+  return periodStart.toISOString();
+}

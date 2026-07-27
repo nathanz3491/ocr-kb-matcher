@@ -8,6 +8,7 @@ import {
   getCurrentMonthStart,
   isCurrentPeriod,
   nextAnniversaryDate,
+  currentPeriodStart,
 } from '../config/tiers';
 
 /**
@@ -121,40 +122,14 @@ export function enforceQuota(resource: QuotaResource) {
           usage.quizGenerated = 0;
           usage.chatMessages = 0;
 
-          if (tier === 'free') {
-            usage.periodStart = freshUsage().periodStart;
-          } else {
-            const subscriptionStartedAt = row.subscription_started_at;
-            if (!subscriptionStartedAt) {
-              Sentry.captureMessage(
-                `Paid user ${userId} missing subscription_started_at; falling back to month-start for period rollover`,
-                'warning',
-              );
-              usage.periodStart = freshUsage().periodStart;
-            } else {
-              // Advance from the subscription anchor date in period-sized
-              // steps (1 month for monthly, 1 year for yearly) until we find
-              // the period that contains `now`.
-              const anchor = new Date(subscriptionStartedAt);
-              const periodStart = new Date(anchor);
-              while (true) {
-                const periodEnd = new Date(periodStart);
-                if (tier === 'monthly') {
-                  periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
-                } else {
-                  // yearly
-                  periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
-                }
-                if (now >= periodStart && now < periodEnd) break;
-                if (tier === 'monthly') {
-                  periodStart.setUTCMonth(periodStart.getUTCMonth() + 1);
-                } else {
-                  periodStart.setUTCFullYear(periodStart.getUTCFullYear() + 1);
-                }
-              }
-              usage.periodStart = periodStart.toISOString();
-            }
+          if (tier !== 'free' && !row.subscription_started_at) {
+            Sentry.captureMessage(
+              `Paid user ${userId} missing subscription_started_at; falling back to month-start for period rollover`,
+              'warning',
+            );
           }
+          // Shared source of truth: free → month-start, paid → subscription anniversary.
+          usage.periodStart = currentPeriodStart(row.subscription_started_at, tier, now);
 
           // Persist rolled-over usage to DB before the atomic increment.
           db.prepare('UPDATE users SET usage = ? WHERE id = ?')
