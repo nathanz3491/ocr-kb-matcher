@@ -19,6 +19,7 @@ import {
   getCurrentMonthStart,
   isCurrentPeriod,
   nextAnniversaryDate,
+  currentPeriodStart,
 } from '../config/tiers';
 
 const router = Router();
@@ -233,15 +234,13 @@ router.get(
     }
 
     // ── Lazy period rollover ──────────────────────────────────
+    // Must branch on tier identically to the enforceQuota middleware, or the
+    // displayed period would drift from the enforced one. Uses the shared
+    // currentPeriodStart helper: free → month-start, paid → subscription anniversary.
     let changed = false;
     if (!isCurrentPeriod({ tier, usage }, now)) {
-      const fresh = {
-        periodStart: getCurrentMonthStart(),
-        uploads: 0,
-        quizGenerated: 0,
-        chatMessages: 0,
-      };
-      usage.periodStart = fresh.periodStart;
+      const subscriptionStartedAt = (user as { subscriptionStartedAt?: string }).subscriptionStartedAt;
+      usage.periodStart = currentPeriodStart(subscriptionStartedAt, tier, now);
       usage.uploads = 0;
       usage.quizGenerated = 0;
       usage.chatMessages = 0;

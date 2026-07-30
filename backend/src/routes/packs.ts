@@ -21,7 +21,10 @@ async function resolveTier(req: any): Promise<Tier> {
   return 'free';
 }
 
-const PACKS_DIR = path.join(__dirname, '../../data/packs');
+// Resolve from process.cwd() (the backend/ working dir), NOT __dirname:
+// under the compiled dist/ layout, a __dirname-relative path lands inside
+// dist/ where the data files don't exist. Matches the DB layer (data/app.db).
+const PACKS_DIR = path.join(process.cwd(), 'data', 'packs');
 const PACK_STATUSES = ['coming_soon', 'partial', 'complete', 'preview'] as const;
 type PackStatus = typeof PACK_STATUSES[number];
 
